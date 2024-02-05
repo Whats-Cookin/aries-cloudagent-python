@@ -82,6 +82,7 @@ class IndyCredRequestSchema(BaseModelSchema):
 
 
 class AnoncredsLinkSecret(BaseModel):
+class BindingProof(BaseModel):
     """Binding proof model."""
 
     class Meta:
@@ -109,12 +110,14 @@ class AnoncredsLinkSecret(BaseModel):
 
 
 class AnoncredsLinkSecretSchema(BaseModelSchema):
+class BindingProofSchema(BaseModelSchema):
     """VCDI credential request schema."""
 
     class Meta:
         """VCDI credential request schema metadata."""
 
         model_class = AnoncredsLinkSecret
+        model_class = BindingProof
         unknown = EXCLUDE
 
     entropy = fields.Str(
@@ -255,3 +258,8 @@ class VCDICredRequestSchema(BaseModelSchema):
         required=True,
         metadata={"description": "", "example": ""},
     )
+    data_model_version = fields.str(
+        required=True, metadata={"description": "", "example": ""}
+    )
+
+    binding_proof = fields.str(required=True, metadata={"description": "", "example": ""})
