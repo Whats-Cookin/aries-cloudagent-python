@@ -285,6 +285,9 @@ class BindingMethodSchema(BaseModelSchema):
         model_class = BindingMethod
         unknown = EXCLUDE
 
+class BindingMethodSchema(BaseModelSchema):
+    """VCDI Binding Method Schema."""
+
     anoncreds_link_secret = fields.Nested(AnoncredsLinkSecretSchema, required=False)
     didcomm_signed_attachment = fields.Nested(
         DidcommSignedAttachmentSchema, required=True
@@ -302,6 +305,7 @@ class VCDICredAbstract(BaseModel):
     def __init__(
         self,
         data_model_versions_supported: Sequence[str] = None,
+        data_model_versions_supported: str = None,
         binding_required: str = None,
         binding_methods: str = None,
         credential: Union[dict, VerifiableCredential] = None,
@@ -333,6 +337,7 @@ class VCDICredAbstractSchema(BaseModelSchema):
 
         data_model_versions_supported = fields.List(
             fields.Str(), required=True, metadata={"description": "", "example": ""}
+            required=True, validate="", metadata={"description": "", "example": ""}
         )
 
         binding_required = fields.Bool(
@@ -349,4 +354,5 @@ class VCDICredAbstractSchema(BaseModelSchema):
             CredentialSchema(),
             required=True,
             metadata={"description": "", "example": ""},
+            CredentialSchema(), required=True, metadata={"description": "", "example": ""}
         )
