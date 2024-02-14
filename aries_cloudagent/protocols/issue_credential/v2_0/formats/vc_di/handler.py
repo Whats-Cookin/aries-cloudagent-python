@@ -18,7 +18,11 @@ from aries_cloudagent.vc.vc_ld.models.credential import (
 from aries_cloudagent.protocols.issue_credential.v2_0.models.detail.vc_di import (
     V20CredExRecordVCDI,
 )
-from aries_cloudagent.vc.vc_ld.models.credential import VerifiableCredentialSchema
+from aries_cloudagent.vc.vc_ld.manager import VcLdpManager, VcLdpManagerError
+from aries_cloudagent.vc.vc_ld.models.credential import (
+    VerifiableCredential,
+    VerifiableCredentialSchema,
+)
 
 from marshmallow import RAISE
 
@@ -70,7 +74,6 @@ from ...messages.cred_offer import V20CredOffer
 from ...messages.cred_proposal import V20CredProposal
 from ...messages.cred_request import V20CredRequest
 from ...models.cred_ex_record import V20CredExRecord
-from ...models.detail.indy import V20CredExRecordIndy
 from ..handler import CredFormatAttachment, V20CredFormatError, V20CredFormatHandler
 
 LOGGER = logging.getLogger(__name__)
@@ -298,8 +301,10 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         if "nonce" not in cred_offer:
             raise V20CredFormatError("Missing nonce in credential offer")
 
-        nonce = cred_offer["nonce"]
-        cred_def_id = cred_offer["cred_def_id"]
+        nonce = cred_offer["binding_method"]["anoncreds_link_secret"]["nonce"]
+        cred_def_id = cred_offer["binding_method"]["anoncreds_link_secret"][
+            "cred_def_id"
+        ]
 
         async def _create():
             anoncreds_registry = self.profile.inject(AnonCredsRegistry)
@@ -390,27 +395,33 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         cred_request = cred_ex_record.cred_request.attachment(
             VCDICredFormatHandler.format
         )
-        cred_values = cred_ex_record.cred_offer.credential_preview.attr_dict(decode=False)
-
-        issuer = AnonCredsIssuer(self.profile)
-        cred_def_id = cred_offer["cred_def_id"]
-        if await issuer.cred_def_supports_revocation(cred_def_id):
-            revocation = AnonCredsRevocation(self.profile)
-            cred_json, cred_rev_id, rev_reg_def_id = await revocation.create_credential(
-                cred_offer, cred_request, cred_values
+        detail_credential = VCDICredAbstract.deserialize(attached_credential)
+        binding_proof = cred_ex_record.cred_request.attachment(
+            VCDICredFormatHandler.format
+        )
+        detail_proof = VCDICredRequest.deserialize(binding_proof)
+        manager = self.profile.inject(VcLdpManager)
+        # TODO - implement a separate create_credential for vcdi
+        assert detail_credential.credential and isinstance(
+            detail_credential.credential, VerifiableCredential
+        )
+        assert detail_proof.binding_proof and isinstance(
+            detail_proof.binding_proof, BindingProof
+        )
+        try:
+            vc = await manager.issue(
+                detail_credential.credential, detail_proof.binding_proof
             )
-        else:
-            # TODO - implement a separate create_credential for vcdi
-            cred_json = await issuer.create_credential(
-                cred_offer, cred_request, cred_values
-            )
-            cred_rev_id = None
-            rev_reg_def_id = None
+        except VcLdpManagerError as err:
+            raise V20CredFormatError("Failed to issue credential") from err
 
-        result = self.get_format_data(CRED_20_ISSUE, json.loads(cred_json))
+        result = self.get_format_data(CRED_20_ISSUE, vc.serialize())
+
+        cred_rev_id = None
+        rev_reg_def_id = None
 
         async with self._profile.transaction() as txn:
-            detail_record = V20CredExRecordIndy(
+            detail_record = V20CredExRecordVCDI(
                 cred_ex_id=cred_ex_record.cred_ex_id,
                 rev_reg_id=rev_reg_def_id,
                 cred_rev_id=cred_rev_id,
