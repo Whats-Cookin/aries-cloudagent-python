@@ -91,6 +91,7 @@ class BindingProof(BaseModel):
         """VCDI credential request schema metadata."""
 
         schema_class = "BindingProofSchema"
+        unknown = EXCLUDE
 
     def __init__(
         self,
@@ -158,6 +159,7 @@ class DidcommSignedAttachment(BaseModel):
         """Didcomm signed attachment metadata."""
 
         schema_class = "DidcommSignedAttachmentSchema"
+        unknown = EXCLUDE
 
     def __init__(self, attachment_id: str = None, **kwargs):
         """Initialize DidcommSignedAttachment."""
@@ -175,6 +177,8 @@ class DidcommSignedAttachmentSchema(BaseModelSchema):
         unknown = EXCLUDE
 
     attachment_id = fields.Str(
+
+    attachment_id = fields.str(
         required=True, metadata={"description": "", "example": ""}
     )
 
@@ -186,6 +190,7 @@ class BindingProof(BaseModel):
         """Binding proof metadata."""
 
         schema_class = "BindingProofSchema"
+        unknown = EXCLUDE
 
     def __init__(
         self,

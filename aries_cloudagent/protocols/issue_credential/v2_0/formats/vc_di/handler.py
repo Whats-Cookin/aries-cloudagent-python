@@ -3,6 +3,10 @@
 import json
 import logging
 from typing import Mapping, Tuple
+from aries_cloudagent.protocols.issue_credential.v2_0.manager import (
+    V20CredManager,
+    V20CredManagerError,
+)
 from aries_cloudagent.protocols.issue_credential.v2_0.models.detail.vc_di import (
     V20CredExRecordVCDI,
 )
@@ -40,8 +44,17 @@ from ......indy.models.cred_request import (
     VCDICredRequestSchema,
 )
 from ......indy.models.cred import IndyCredentialSchema
-from ......indy.models.cred_abstract import IndyCredAbstractSchema, VCDICredAbstractSchema
-from ......indy.models.cred_request import IndyCredRequestSchema, VCDICredRequestSchema
+from ......indy.models.cred_abstract import (
+    IndyCredAbstractSchema,
+    VCDICredAbstract,
+    VCDICredAbstractSchema,
+)
+from ......indy.models.cred_request import (
+    BindingProof,
+    IndyCredRequestSchema,
+    VCDICredRequest,
+    VCDICredRequestSchema,
+)
 from ......cache.base import BaseCache
 from ......ledger.base import BaseLedger
 from ......ledger.multiple_ledger.ledger_requests_executor import (
@@ -71,7 +84,6 @@ from ...messages.cred_offer import V20CredOffer
 from ...messages.cred_proposal import V20CredProposal
 from ...messages.cred_request import V20CredRequest
 from ...models.cred_ex_record import V20CredExRecord
-from ...models.detail.indy import V20CredExRecordIndy
 from ..handler import CredFormatAttachment, V20CredFormatError, V20CredFormatHandler
 
 LOGGER = logging.getLogger(__name__)
@@ -314,8 +326,10 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         if "nonce" not in cred_offer:
             raise V20CredFormatError("Missing nonce in credential offer")
 
-        nonce = cred_offer["nonce"]
-        cred_def_id = cred_offer["cred_def_id"]
+        nonce = cred_offer["binding_method"]["anoncreds_link_secret"]["nonce"]
+        cred_def_id = cred_offer["binding_method"]["anoncreds_link_secret"][
+            "cred_def_id"
+        ]
 
         async def _create():
             anoncreds_registry = self.profile.inject(AnonCredsRegistry)
@@ -409,8 +423,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         """Issue indy credential."""
         await self._check_uniqueness(cred_ex_record.cred_ex_id)
 
-        cred_offer = cred_ex_record.cred_offer.attachment(VCDICredFormatHandler.format)
-        cred_request = cred_ex_record.cred_request.attachment(
+        attached_credential = cred_ex_record.cred_offer.attachment(
             VCDICredFormatHandler.format
         )
         detail_credential = VCDICredAbstract.deserialize(attached_credential)
@@ -449,18 +462,16 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             cred_json, cred_rev_id, rev_reg_def_id = await revocation.create_credential(
                 cred_offer, cred_request, cred_values
             )
-        else:
-            # TODO - implement a separate create_credential for vcdi
-            cred_json = await issuer.create_credential(
-                cred_offer, cred_request, cred_values
-            )
-            cred_rev_id = None
-            rev_reg_def_id = None
+        except VcLdpManagerError as err:
+            raise V20CredFormatError("Failed to issue credential") from err
 
-        result = self.get_format_data(CRED_20_ISSUE, json.loads(cred_json))
+        result = self.get_format_data(CRED_20_ISSUE, vc.serialize())
+
+        cred_rev_id = None
+        rev_reg_def_id = None
 
         async with self._profile.transaction() as txn:
-            detail_record = V20CredExRecordIndy(
+            detail_record = V20CredExRecordVCDI(
                 cred_ex_id=cred_ex_record.cred_ex_id,
                 rev_reg_id=rev_reg_def_id,
                 cred_rev_id=cred_rev_id,
