@@ -71,6 +71,7 @@ WALLET_TYPE_ANONCREDS = "askar-anoncreds"
 
 CRED_FORMAT_INDY = "indy"
 CRED_FORMAT_JSON_LD = "json-ld"
+CRED_FORMAT_VC_DI = "vc_di"
 DID_METHOD_SOV = "sov"
 DID_METHOD_KEY = "key"
 KEY_TYPE_ED255 = "ed25519"
@@ -368,9 +369,7 @@ class DemoAgent:
         log_msg("Schema ID:", schema_id)
 
         # Create a cred def for the schema
-        cred_def_tag = (
-            tag if tag else (self.ident + "." + schema_name).replace(" ", "_")
-        )
+        cred_def_tag = tag if tag else (self.ident + "." + schema_name).replace(" ", "_")
         credential_definition_body = {
             "schema_id": schema_id,
             "support_revocation": support_revocation,
@@ -400,9 +399,7 @@ class DemoAgent:
                 credential_definition_response = await self.admin_GET(
                     "/credential-definitions/created"
                 )
-                if 0 == len(
-                    credential_definition_response["credential_definition_ids"]
-                ):
+                if 0 == len(credential_definition_response["credential_definition_ids"]):
                     await asyncio.sleep(1.0)
                     attempts = attempts - 1
             credential_definition_id = credential_definition_response[
@@ -449,9 +446,7 @@ class DemoAgent:
         log_msg("Schema ID:", schema_id)
 
         # Create a cred def for the schema
-        cred_def_tag = (
-            tag if tag else (self.ident + "." + schema_name).replace(" ", "_")
-        )
+        cred_def_tag = tag if tag else (self.ident + "." + schema_name).replace(" ", "_")
         max_cred_num = revocation_registry_size if revocation_registry_size else 0
         credential_definition_body = {
             "credential_definition": {
@@ -487,9 +482,7 @@ class DemoAgent:
                 credential_definition_response = await self.admin_GET(
                     "/anoncreds/credential-definitions"
                 )
-                if 0 == len(
-                    credential_definition_response["credential_definition_ids"]
-                ):
+                if 0 == len(credential_definition_response["credential_definition_ids"]):
                     await asyncio.sleep(1.0)
                     attempts = attempts - 1
             credential_definition_id = credential_definition_response[
@@ -706,9 +699,7 @@ class DemoAgent:
                 nym_info = data
             else:
                 log_msg("using ledger: " + ledger_url + "/register")
-                resp = await self.client_session.post(
-                    ledger_url + "/register", json=data
-                )
+                resp = await self.client_session.post(ledger_url + "/register", json=data)
                 if resp.status != 200:
                     raise Exception(
                         f"Error registering DID {data}, response code {resp.status}"
@@ -905,9 +896,7 @@ class DemoAgent:
 
     def get_process_args(self):
         return list(
-            flatten(
-                ([PYTHON, "-m", "aries_cloudagent", "start"], self.get_agent_args())
-            )
+            flatten(([PYTHON, "-m", "aries_cloudagent", "start"], self.get_agent_args()))
         )
 
     async def start_process(self, python_path: str = None, wait: bool = True):
@@ -1123,9 +1112,7 @@ class DemoAgent:
             if self.multitenant:
                 if not headers:
                     headers = {}
-                headers["Authorization"] = (
-                    "Bearer " + self.managed_wallet_params["token"]
-                )
+                headers["Authorization"] = "Bearer " + self.managed_wallet_params["token"]
             response = await self.admin_request(
                 "GET", path, None, text, params, headers=headers
             )
@@ -1177,9 +1164,7 @@ class DemoAgent:
             if self.multitenant:
                 if not headers:
                     headers = {}
-                headers["Authorization"] = (
-                    "Bearer " + self.managed_wallet_params["token"]
-                )
+                headers["Authorization"] = "Bearer " + self.managed_wallet_params["token"]
             response = await self.admin_request(
                 "POST", path, data, text, params, headers=headers
             )
@@ -1202,9 +1187,7 @@ class DemoAgent:
             if self.multitenant:
                 if not headers:
                     headers = {}
-                headers["Authorization"] = (
-                    "Bearer " + self.managed_wallet_params["token"]
-                )
+                headers["Authorization"] = "Bearer " + self.managed_wallet_params["token"]
             return await self.admin_request(
                 "PATCH", path, data, text, params, headers=headers
             )
@@ -1219,9 +1202,7 @@ class DemoAgent:
             if self.multitenant:
                 if not headers:
                     headers = {}
-                headers["Authorization"] = (
-                    "Bearer " + self.managed_wallet_params["token"]
-                )
+                headers["Authorization"] = "Bearer " + self.managed_wallet_params["token"]
             return await self.admin_request(
                 "PUT", path, data, text, params, headers=headers
             )
@@ -1241,9 +1222,7 @@ class DemoAgent:
             if self.multitenant:
                 if not headers:
                     headers = {}
-                headers["Authorization"] = (
-                    "Bearer " + self.managed_wallet_params["token"]
-                )
+                headers["Authorization"] = "Bearer " + self.managed_wallet_params["token"]
             response = await self.admin_request(
                 "DELETE", path, data, text, params, headers=headers
             )
@@ -1262,9 +1241,7 @@ class DemoAgent:
             if self.multitenant:
                 if not headers:
                     headers = {}
-                headers["Authorization"] = (
-                    "Bearer " + self.managed_wallet_params["token"]
-                )
+                headers["Authorization"] = "Bearer " + self.managed_wallet_params["token"]
             params = {k: v for (k, v) in (params or {}).items() if v is not None}
             resp = await self.client_session.request(
                 "GET", self.admin_url + path, params=params, headers=headers
@@ -1280,9 +1257,7 @@ class DemoAgent:
             if self.multitenant:
                 if not headers:
                     headers = {}
-                headers["Authorization"] = (
-                    "Bearer " + self.managed_wallet_params["token"]
-                )
+                headers["Authorization"] = "Bearer " + self.managed_wallet_params["token"]
             params = {k: v for (k, v) in (params or {}).items() if v is not None}
             resp = await self.client_session.request(
                 "PUT", url, params=params, data=files, headers=headers
@@ -1654,9 +1629,7 @@ class EndorserAgent(DemoAgent):
                 # setup endorser meta-data on our connection
                 log_msg("Setup endorser agent meta-data ...")
                 await self.admin_POST(
-                    "/transactions/"
-                    + self.endorser_connection_id
-                    + "/set-endorser-role",
+                    "/transactions/" + self.endorser_connection_id + "/set-endorser-role",
                     params={"transaction_my_job": "TRANSACTION_ENDORSER"},
                 )
 
