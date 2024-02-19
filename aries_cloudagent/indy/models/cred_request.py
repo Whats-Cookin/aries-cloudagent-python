@@ -177,6 +177,8 @@ class DidcommSignedAttachmentSchema(BaseModelSchema):
     attachment_id = fields.Str(
 
     attachment_id = fields.Str(required=True, metadata={"description": "", "example": ""})
+        required=True, metadata={"description": "", "example": ""}
+    )
 
 
 class BindingProof(BaseModel):
