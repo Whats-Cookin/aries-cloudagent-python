@@ -288,6 +288,12 @@ class BindingMethodSchema(BaseModelSchema):
 class BindingMethodSchema(BaseModelSchema):
     """VCDI Binding Method Schema."""
 
+    class Meta:
+        """VCDI binding method schema metadata."""
+
+        model_class = BindingMethod
+        unknown = EXCLUDE
+
     anoncreds_link_secret = fields.Nested(AnoncredsLinkSecretSchema, required=False)
     didcomm_signed_attachment = fields.Nested(
         DidcommSignedAttachmentSchema, required=True

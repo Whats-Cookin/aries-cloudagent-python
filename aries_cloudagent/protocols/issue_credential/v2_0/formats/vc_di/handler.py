@@ -295,7 +295,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         """Create indy credential request."""
         if cred_ex_record.state != V20CredExRecord.STATE_OFFER_RECEIVED:
             raise V20CredFormatError(
-                "Indy issue credential format cannot start from credential request"
+                "vcdi issue credential format cannot start from credential request"
             )
 
         await self._check_uniqueness(cred_ex_record.cred_ex_id)
@@ -330,6 +330,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         cred_def_id = cred_offer["binding_method"]["anoncreds_link_secret"][
             "cred_def_id"
         ]
+        cred_def_id = cred_offer["binding_method"]["anoncreds_link_secret"]["cred_def_id"]
 
         async def _create():
             anoncreds_registry = self.profile.inject(AnonCredsRegistry)
@@ -381,7 +382,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         """Receive indy credential request."""
         if not cred_ex_record.cred_offer:
             raise V20CredFormatError(
-                "Indy issue credential format cannot start from credential request"
+                "vcdi issue credential format cannot start from credential request"
             )
 
     async def issue_credential(
