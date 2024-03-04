@@ -510,6 +510,12 @@ class DemoAgent:
             "--public-invites",
             # ("--log-level", "debug"),
         ]
+        # if self.cred_type:
+        #     result.extend(
+        #         [
+        #             ("--cred-type", self.cred_type)
+        #         ]
+        #     )
         if self.log_file or self.log_file == "":
             result.extend(
                 [
@@ -668,7 +674,7 @@ class DemoAgent:
         role: str = "TRUST_ANCHOR",
         cred_type: str = CRED_FORMAT_INDY or CRED_FORMAT_VC_DI
     ):
-        if cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
+        if cred_type == CRED_FORMAT_INDY:
             # if registering a did for issuing indy credentials, publish the did on the ledger
             self.log(f"Registering {self.ident} ...")
             if not ledger_url:
@@ -713,6 +719,47 @@ class DemoAgent:
         elif cred_type == CRED_FORMAT_JSON_LD:
             # TODO register a did:key with appropriate signature type
             pass
+        elif cred_type == CRED_FORMAT_VC_DI:
+            self.log(f"Registering {self.ident} ...")
+            if not ledger_url:
+                if self.multi_write_ledger_url:
+                    ledger_url = self.multi_write_ledger_url
+                else:
+                    ledger_url = LEDGER_URL
+            if not ledger_url:
+                ledger_url = f"http://{self.external_host}:9000"
+            data = {"alias": alias or self.ident}
+            if self.endorser_role:
+                if self.endorser_role == "endorser":
+                    role = "ENDORSER"
+                else:
+                    role = None
+            if role:
+                data["role"] = role
+            if did and verkey:
+                data["did"] = did
+                data["verkey"] = verkey
+            else:
+                data["seed"] = self.seed
+            if role is None or role == "":
+                # if author using endorser register nym and wait for endorser ...
+                resp = await self.admin_POST("/ledger/register-nym", params=data)
+                await asyncio.sleep(3.0)
+                nym_info = data
+            else:
+                log_msg("using ledger: " + ledger_url + "/register")
+                resp = await self.client_session.post(ledger_url + "/register", json=data)
+                if resp.status != 200:
+                    raise Exception(
+                        f"Error registering DID {data}, response code {resp.status}"
+                    )
+                nym_info = await resp.json()
+            self.did = nym_info["did"]
+            self.log(f"nym_info: {nym_info}")
+            if self.multitenant:
+                if not self.agency_wallet_did:
+                    self.agency_wallet_did = self.did
+            self.log(f"Registered DID: {self.did}")
         else:
             raise Exception("Invalid credential type:" + cred_type)
 

@@ -974,7 +974,7 @@ class AgentContainer:
 
             return cred_exchange
 
-        elif self.cred_type == CRED_FORMAT_VC_DI:
+        elif self.cred_type in [CRED_FORMAT_VC_DI]:
             cred_preview = {
                 "@type": CRED_PREVIEW_TYPE,
                 "attributes": cred_attrs,
@@ -1311,7 +1311,7 @@ def arg_parser(ident: str = None, port: int = 8020):
         parser.add_argument(
             "--cred-type",
             type=str,
-            default=CRED_FORMAT_INDY,
+            default=None,
             metavar=("<cred-type>"),
             help="Credential type (indy, json-ld, vc_di)",
         )
@@ -1404,6 +1404,13 @@ def arg_parser(ident: str = None, port: int = 8020):
             "('debug', 'info', 'warning', 'error', 'critical')"
         ),
     )
+    # parser.add_argument(
+    #     "--cred-type",
+    #     type=str,
+    #     metavar="<cred-type>",
+    #     default="vc_di",
+    #     help="Choose the credential type for VC"
+    # )
     return parser
 
 
@@ -1579,6 +1586,7 @@ async def test_main(
             wallet_type=wallet_type,
             public_did=False,
             seed=None,
+            cred_type=cred_type,
             aip=aip,
             # cred_type=cred_type,
         )

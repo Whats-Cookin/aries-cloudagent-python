@@ -179,6 +179,7 @@ class AliceAgent(BaseAgent):
         log_file: str = None,
         log_config: str = None,
         log_level: str = None,
+        cred_type: str = None,
         **kwargs,
     ):
         super().__init__(
@@ -188,6 +189,7 @@ class AliceAgent(BaseAgent):
             log_file=log_file,
             log_config=log_config,
             log_level=log_level,
+            cred_type=cred_type,
             **kwargs,
         )
         self.extra_args = [
