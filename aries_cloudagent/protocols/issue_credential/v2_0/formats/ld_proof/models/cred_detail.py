@@ -80,3 +80,4 @@ class LDProofVCDetailSchema(BaseModelSchema):
             "example": {"proofType": "Ed25519Signature2018"},
         },
     )
+ 

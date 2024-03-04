@@ -54,6 +54,8 @@ from .messages.inner.cred_preview import V20CredPreview, V20CredPreviewSchema
 from .models.cred_ex_record import V20CredExRecord, V20CredExRecordSchema
 from .models.detail.indy import V20CredExRecordIndySchema
 from .models.detail.ld_proof import V20CredExRecordLDProofSchema
+from .formats.vc_di.models.cred_detail import VCDIDetailSchema
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -168,6 +170,45 @@ class V20CredFilterIndySchema(OpenAPISchema):
         metadata={"description": "Credential issuer DID", "example": INDY_DID_EXAMPLE},
     )
 
+class V20CredFilterVCDISchema(OpenAPISchema):
+    """Indy credential filtration criteria."""
+
+    cred_def_id = fields.Str(
+        required=False,
+        validate=INDY_CRED_DEF_ID_VALIDATE,
+        metadata={
+            "description": "Credential definition identifier",
+            "example": INDY_CRED_DEF_ID_EXAMPLE,
+        },
+    )
+    schema_id = fields.Str(
+        required=False,
+        validate=INDY_SCHEMA_ID_VALIDATE,
+        metadata={
+            "description": "Schema identifier",
+            "example": INDY_SCHEMA_ID_EXAMPLE,
+        },
+    )
+    schema_issuer_did = fields.Str(
+        required=False,
+        validate=INDY_DID_VALIDATE,
+        metadata={"description": "Schema issuer DID", "example": INDY_DID_EXAMPLE},
+    )
+    schema_name = fields.Str(
+        required=False,
+        metadata={"description": "Schema name", "example": "preferences"},
+    )
+    schema_version = fields.Str(
+        required=False,
+        validate=INDY_VERSION_VALIDATE,
+        metadata={"description": "Schema version", "example": INDY_VERSION_EXAMPLE},
+    )
+    issuer_did = fields.Str(
+        required=False,
+        validate=INDY_DID_VALIDATE,
+        metadata={"description": "Credential issuer DID", "example": INDY_DID_EXAMPLE},
+    )
+
 
 class V20CredFilterSchema(OpenAPISchema):
     """Credential filtration criteria."""
@@ -182,6 +223,13 @@ class V20CredFilterSchema(OpenAPISchema):
         required=False,
         metadata={"description": "Credential filter for linked data proof"},
     )
+    vc_di = fields.Nested(
+        VCDIDetailSchema,
+        # V20CredFilterVCDISchema,
+        required=False,
+        metadata={"description": "Credential filter for vc_di"},
+    )
+    
 
     @validates_schema
     def validate_fields(self, data, **kwargs):

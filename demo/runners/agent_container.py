@@ -697,7 +697,7 @@ class AgentContainer:
         genesis_txns: str = None,
         genesis_txn_list: str = None,
         tails_server_base_url: str = None,
-        cred_type: str = CRED_FORMAT_INDY,
+        cred_type: str = CRED_FORMAT_INDY or CRED_FORMAT_VC_DI,
         show_timing: bool = False,
         multitenant: bool = False,
         mediation: bool = False,
@@ -745,7 +745,8 @@ class AgentContainer:
             # endorsers and authors need public DIDs (assume cred_type is Indy)
             if endorser_role == "author" or endorser_role == "endorser":
                 self.public_did = True
-                self.cred_type = CRED_FORMAT_INDY
+                self.cred_type = CRED_FORMAT_INDY or CRED_FORMAT_VC_DI
+                # self.cred_type = CRED_FORMAT_VC_DI
 
         self.reuse_connections = reuse_connections
         self.exchange_tracing = False
@@ -953,7 +954,7 @@ class AgentContainer:
         log_status("#13 Issue credential offer to X")
 
         if self.cred_type in [
-            CRED_FORMAT_INDY,
+            CRED_FORMAT_INDY
         ]:
             cred_preview = {
                 "@type": CRED_PREVIEW_TYPE,
@@ -1123,6 +1124,9 @@ class AgentContainer:
         elif self.cred_type == CRED_FORMAT_JSON_LD:
             # return verified status
             return self.agent.last_proof_received["verified"]
+        
+        # elif self.cred_type == CRED_FORMAT_VC_DI:
+        #     return self.agent.last_proof_received["verified"]
 
         else:
             raise Exception("Invalid credential type:" + self.cred_type)
@@ -1309,7 +1313,7 @@ def arg_parser(ident: str = None, port: int = 8020):
             type=str,
             default=CRED_FORMAT_INDY,
             metavar=("<cred-type>"),
-            help="Credential type (indy, json-ld)",
+            help="Credential type (indy, json-ld, vc_di)",
         )
     parser.add_argument(
         "--aip",
@@ -1471,12 +1475,12 @@ async def create_agent_with_args(args, ident: str = None, extra_args: list = Non
         aip = 20
 
     if "cred_type" in args and args.cred_type not in [
-        CRED_FORMAT_INDY,
+        CRED_FORMAT_INDY, CRED_FORMAT_VC_DI
     ]:
         public_did = None
         aip = 20
     elif "cred_type" in args and args.cred_type in [
-        CRED_FORMAT_INDY,
+        CRED_FORMAT_INDY, CRED_FORMAT_VC_DI
     ]:
         public_did = True
     else:
@@ -1576,6 +1580,7 @@ async def test_main(
             public_did=False,
             seed=None,
             aip=aip,
+            # cred_type=cred_type,
         )
 
         # start the agents - faber gets a public DID and schema/cred def

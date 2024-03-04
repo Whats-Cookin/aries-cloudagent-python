@@ -666,7 +666,7 @@ class DemoAgent:
         did: str = None,
         verkey: str = None,
         role: str = "TRUST_ANCHOR",
-        cred_type: str = CRED_FORMAT_INDY,
+        cred_type: str = CRED_FORMAT_INDY or CRED_FORMAT_VC_DI
     ):
         if cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
             # if registering a did for issuing indy credentials, publish the did on the ledger
@@ -722,7 +722,7 @@ class DemoAgent:
         public_did=False,
         webhook_port: int = None,
         mediator_agent=None,
-        cred_type: str = CRED_FORMAT_INDY,
+        cred_type: str = CRED_FORMAT_INDY or CRED_FORMAT_VC_DI,
         endorser_agent=None,
         taa_accept=False,
     ):
@@ -805,6 +805,7 @@ class DemoAgent:
                 await self.register_did(
                     did=new_did["result"]["did"],
                     verkey=new_did["result"]["verkey"],
+                    cred_type=CRED_FORMAT_INDY,
                 )
                 if self.endorser_role and self.endorser_role == "author":
                     if endorser_agent:
@@ -813,13 +814,30 @@ class DemoAgent:
                 else:
                     await self.admin_POST("/wallet/did/public?did=" + self.did)
                     await asyncio.sleep(3.0)
+
+              # did:key is not registered as a public did
+            elif cred_type == CRED_FORMAT_VC_DI:
+                # assign public did
+                new_did = await self.admin_POST("/wallet/did/create")
+                self.did = new_did["result"]["did"]
+                await self.register_did(
+                    did=new_did["result"]["did"],
+                    verkey=new_did["result"]["verkey"],
+                    cred_type=CRED_FORMAT_VC_DI,
+                )
+                if self.endorser_role and self.endorser_role == "author":
+                    if endorser_agent:
+                        await self.admin_POST("/wallet/did/public?did=" + self.did)
+                        await asyncio.sleep(3.0)
+                else:
+                    await self.admin_POST("/wallet/did/public?did=" + self.did)
+                    await asyncio.sleep(3.0)
+
             elif cred_type == CRED_FORMAT_JSON_LD:
                 # create did of appropriate type
                 data = {"method": DID_METHOD_KEY, "options": {"key_type": KEY_TYPE_BLS}}
                 new_did = await self.admin_POST("/wallet/did/create", data=data)
                 self.did = new_did["result"]["did"]
-
-                # did:key is not registered as a public did
             else:
                 # todo ignore for now
                 pass
@@ -1650,7 +1668,7 @@ async def start_endorser_agent(
         genesis_data=genesis,
         genesis_txn_list=genesis_txn_list,
     )
-    await endorser_agent.register_did(cred_type=CRED_FORMAT_INDY)
+    await endorser_agent.register_did(cred_type=CRED_FORMAT_VC_DI)
     await endorser_agent.listen_webhooks(start_port + 2)
     await endorser_agent.start_process()
 

@@ -241,7 +241,7 @@ if __name__ == "__main__":
         os.getenv("PYDEVD_PYCHARM_CONTROLLER_PORT", 5001)
     )
 
-    if ENABLE_PYDEVD_PYCHARM:
+    if ENABLE_PYDEVD_PYCHARM: 
         try:
             import pydevd_pycharm
 

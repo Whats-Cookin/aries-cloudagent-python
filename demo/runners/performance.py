@@ -330,6 +330,7 @@ async def main(
     log_file: str = None,
     log_config: str = None,
     log_level: str = None,
+    cred_type: str = None,
 ):
     if multi_ledger:
         genesis = None
@@ -361,6 +362,7 @@ async def main(
             log_file=log_file,
             log_config=log_config,
             log_level=log_level,
+            cred_type=cred_type,
         )
         await alice.listen_webhooks(start_port + 2)
 
@@ -758,6 +760,15 @@ if __name__ == "__main__":
         help=(
             "Specifies a custom logging level as one of: "
             "('debug', 'info', 'warning', 'error', 'critical')"
+        ),
+    )
+    parser.add_argument(
+        "--cred-type",
+        type=str,
+        metavar="<cred-type>",
+        default=None,
+        help=(
+            "Specifing the credential type"
         ),
     )
     args = parser.parse_args()
