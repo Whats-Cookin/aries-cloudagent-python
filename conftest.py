@@ -244,3 +244,5 @@ def pytest_runtest_setup(item: pytest.Item):
 
     if tuple(item.iter_markers(name="postgres")) and not POSTGRES_URL:
         pytest.skip("test requires Postgres support")
+
+
