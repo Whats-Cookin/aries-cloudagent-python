@@ -381,6 +381,7 @@ async def main(
             log_file=log_file,
             log_config=log_config,
             log_level=log_level,
+            cred_type=cred_type,
         )
         await faber.listen_webhooks(start_port + 5)
         await faber.register_did()
@@ -769,9 +770,7 @@ if __name__ == "__main__":
         type=str,
         metavar="<cred-type>",
         default=None,
-        help=(
-            "Specifing the credential type"
-        ),
+        help=("Specifyng the credential type"),
     )
     args = parser.parse_args()
 

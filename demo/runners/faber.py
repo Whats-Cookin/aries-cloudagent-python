@@ -535,7 +535,9 @@ async def main(args):
                     else False
                 ),
             )
-        elif faber_agent.cred_type == CRED_FORMAT_JSON_LD:
+        elif faber_agent.cred_type in [
+            CRED_FORMAT_JSON_LD,
+        ]:
             faber_agent.public_did = True
             await faber_agent.initialize(the_agent=agent)
         else:

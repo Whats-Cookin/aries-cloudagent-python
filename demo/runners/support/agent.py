@@ -672,9 +672,9 @@ class DemoAgent:
         did: str = None,
         verkey: str = None,
         role: str = "TRUST_ANCHOR",
-        cred_type: str = CRED_FORMAT_INDY or CRED_FORMAT_VC_DI
+        cred_type: str = CRED_FORMAT_INDY or CRED_FORMAT_VC_DI,
     ):
-        if cred_type == CRED_FORMAT_INDY:
+        if cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
             # if registering a did for issuing indy credentials, publish the did on the ledger
             self.log(f"Registering {self.ident} ...")
             if not ledger_url:
@@ -862,7 +862,6 @@ class DemoAgent:
                     await self.admin_POST("/wallet/did/public?did=" + self.did)
                     await asyncio.sleep(3.0)
 
-              # did:key is not registered as a public did
             elif cred_type == CRED_FORMAT_VC_DI:
                 # assign public did
                 new_did = await self.admin_POST("/wallet/did/create")
@@ -1707,6 +1706,7 @@ async def start_endorser_agent(
     genesis: str = None,
     genesis_txn_list: str = None,
     use_did_exchange: bool = True,
+    cred_type: str = CRED_FORMAT_INDY
 ):
     # start mediator agent
     endorser_agent = EndorserAgent(
@@ -1715,7 +1715,7 @@ async def start_endorser_agent(
         genesis_data=genesis,
         genesis_txn_list=genesis_txn_list,
     )
-    await endorser_agent.register_did(cred_type=CRED_FORMAT_VC_DI)
+    await endorser_agent.register_did(cred_type=cred_type)
     await endorser_agent.listen_webhooks(start_port + 2)
     await endorser_agent.start_process()
 
