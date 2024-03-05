@@ -54,6 +54,13 @@ class V20PresFormat(BaseModel):
                 ".formats.dif.handler.DIFPresFormatHandler"
             ),
         )
+        VCDI = FormatSpec(
+            "dif/",
+            DeferLoad(
+                "aries_cloudagent.protocols.present_proof.v2_0"
+                ".formats.dif.handler.DIFPresFormatHandler"
+            ),
+        )
 
         @classmethod
         def get(cls, label: Union[str, "V20PresFormat.Format"]):

@@ -35,14 +35,17 @@ ATTACHMENT_FORMAT = {
     PRES_20_PROPOSAL: {
         V20PresFormat.Format.INDY.api: "hlindy/proof-req@v2.0",
         V20PresFormat.Format.DIF.api: "dif/presentation-exchange/definitions@v1.0",
+        V20PresFormat.Format.VCDI.api: "dif/presentation-exchange/definitions@v1.0",
     },
     PRES_20_REQUEST: {
         V20PresFormat.Format.INDY.api: "hlindy/proof-req@v2.0",
         V20PresFormat.Format.DIF.api: "dif/presentation-exchange/definitions@v1.0",
+        V20PresFormat.Format.VCDI.api: "dif/presentation-exchange/definitions@v1.0",
     },
     PRES_20: {
         V20PresFormat.Format.INDY.api: "hlindy/proof@v2.0",
         V20PresFormat.Format.DIF.api: "dif/presentation-exchange/submission@v1.0",
+        V20PresFormat.Format.VCDI.api: "dif/presentation-exchange/submission@v1.0"
     },
 }
 

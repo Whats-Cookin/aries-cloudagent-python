@@ -127,6 +127,11 @@ class V20PresProposalByFormatSchema(OpenAPISchema):
         required=False,
         metadata={"description": "Presentation proposal for DIF"},
     )
+    vc_di = fields.Nested(
+        DIFProofProposalSchema,
+        required=False,
+        metadata={"description": "Presentation proposal for VCDI"},
+    )
 
     @validates_schema
     def validate_fields(self, data, **kwargs):
@@ -141,7 +146,7 @@ class V20PresProposalByFormatSchema(OpenAPISchema):
         """
         if not any(f.api in data for f in V20PresFormat.Format):
             raise ValidationError(
-                "V20PresProposalByFormatSchema requires indy, dif, or both"
+                "V20PresProposalByFormatSchema requires indy, dif, vcdi or both"
             )
 
 
@@ -202,6 +207,11 @@ class V20PresRequestByFormatSchema(OpenAPISchema):
         required=False,
         metadata={"description": "Presentation request for DIF"},
     )
+    vc_di = fields.Nested(
+        DIFProofRequestSchema,
+        required=False,
+        metadata={"description": "Presentation request for VCDI"},
+    )
 
     @validates_schema
     def validate_fields(self, data, **kwargs):
@@ -216,7 +226,7 @@ class V20PresRequestByFormatSchema(OpenAPISchema):
         """
         if not any(f.api in data for f in V20PresFormat.Format):
             raise ValidationError(
-                "V20PresRequestByFormatSchema requires indy, dif, or both"
+                "V20PresRequestByFormatSchema requires indy, dif, vcdi, or both"
             )
 
 
@@ -303,6 +313,16 @@ class V20PresSpecByFormatRequestSchema(AdminAPIMessageTracingSchema):
         metadata={
             "description": (
                 "Optional Presentation specification for DIF, overrides the"
+                " PresentionExchange record's PresRequest"
+            )
+        },
+    )
+    vc_di = fields.Nested(
+        DIFPresSpecSchema,
+        required=False,
+        metadata={
+            "description": (
+                "Optional Presentation specification for VCDI, overrides the"
                 " PresentionExchange record's PresRequest"
             )
         },
@@ -408,7 +428,7 @@ def _formats_attach(by_format: Mapping, msg_type: str, spec: str) -> Mapping:
             attach.append(
                 AttachDecorator.data_base64(mapping=item_by_fmt, ident=fmt_api)
             )
-        elif fmt_api == V20PresFormat.Format.DIF.api:
+        elif fmt_api in [V20PresFormat.Format.DIF.api, V20PresFormat.Format.VCDI.api]:
             attach.append(AttachDecorator.data_json(mapping=item_by_fmt, ident=fmt_api))
     return {
         "formats": [

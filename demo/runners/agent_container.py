@@ -1033,7 +1033,7 @@ class AgentContainer:
     async def request_proof(self, proof_request, explicit_revoc_required: bool = False):
         log_status("#20 Request proof of degree from alice")
 
-        if self.cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
+        if self.cred_type == CRED_FORMAT_INDY:
             indy_proof_request = {
                 "name": (
                     proof_request["name"]
@@ -1097,7 +1097,7 @@ class AgentContainer:
 
             return proof_exchange
 
-        elif self.cred_type == CRED_FORMAT_JSON_LD:
+        elif self.cred_type in [CRED_FORMAT_JSON_LD,CRED_FORMAT_VC_DI]:
             # TODO create and send the json-ld proof request
             pass
             return None
