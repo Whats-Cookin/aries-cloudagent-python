@@ -123,3 +123,5 @@ Pull requests are welcome! Please read our [contributions guide](./CONTRIBUTING.
 ## License
 
 [Apache License Version 2.0](LICENSE)
+
+## Trigger tests now
