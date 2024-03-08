@@ -28,17 +28,21 @@ from aries_cloudagent.vc.vc_ld.models.credential import VerifiableCredentialSche
 from marshmallow import RAISE
 
 from ......anoncreds.revocation import AnonCredsRevocation
+
 from ......anoncreds.registry import AnonCredsRegistry
 from ......anoncreds.holder import AnonCredsHolder, AnonCredsHolderError
 from ......anoncreds.issuer import (
     AnonCredsIssuer,
 )
+from ......indy.models.cred import IndyCredentialSchema
 from ......indy.models.cred_abstract import (
+    IndyCredAbstractSchema,
     VCDICredAbstract,
     VCDICredAbstractSchema,
 )
 from ......indy.models.cred_request import (
     BindingProof,
+    IndyCredRequestSchema,
     VCDICredRequest,
     VCDICredRequestSchema,
 )
