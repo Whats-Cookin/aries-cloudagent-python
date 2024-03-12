@@ -58,6 +58,7 @@ from .models.cred_ex_record import V20CredExRecord, V20CredExRecordSchema
 from .models.detail.indy import V20CredExRecordIndySchema
 from .models.detail.ld_proof import V20CredExRecordLDProofSchema
 
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -243,7 +244,7 @@ class V20CredFilterSchema(OpenAPISchema):
             data: The data to validate
 
         Raises:
-            ValidationError: if data has neither indy nor ld_proof
+            ValidationError: if data has neither indy nor ld_proof no vc_di
 
         """
         if not any(f.api in data for f in V20CredFormat.Format):

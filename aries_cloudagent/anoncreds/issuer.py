@@ -16,21 +16,21 @@ from anoncreds import (
 )
 from aries_askar import AskarError
 
-from ..askar.profile_anon import (
+from aries_cloudagent.askar.profile_anon import (
     AskarAnoncredsProfile,
     AskarAnoncredsProfileSession,
 )
-from ..core.error import BaseError
-from ..core.event_bus import Event, EventBus
-from ..core.profile import Profile
-from .base import (
+from aries_cloudagent.core.error import BaseError
+from aries_cloudagent.core.event_bus import Event, EventBus
+from aries_cloudagent.core.profile import Profile
+from aries_cloudagent.anoncreds.base import (
     AnonCredsSchemaAlreadyExists,
     BaseAnonCredsError,
 )
-from .events import CredDefFinishedEvent
-from .models.anoncreds_cred_def import CredDef, CredDefResult
-from .models.anoncreds_schema import AnonCredsSchema, SchemaResult, SchemaState
-from .registry import AnonCredsRegistry
+from aries_cloudagent.anoncreds.events import CredDefFinishedEvent
+from aries_cloudagent.anoncreds.models.anoncreds_cred_def import CredDef, CredDefResult
+from aries_cloudagent.anoncreds.models.anoncreds_schema import AnonCredsSchema, SchemaResult, SchemaState
+from aries_cloudagent.anoncreds.registry import AnonCredsRegistry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -689,5 +689,15 @@ class AnonCredsIssuer:
             )
         except AnoncredsError as err:
             raise AnonCredsIssuerError("Error creating credential") from err
+        
+        from ..vc.vc_ld.models.credential import VerifiableCredential
 
-        return credential.to_json()
+        vc = VerifiableCredential(
+            issuer=cred_def.issuer,
+            issuance_date=credential.issuance_date,
+            credential_schema=schema_result.schema_value.to_dict(),
+            attributes=credential.attributes,
+            proof=credential.proof,
+        )
+
+        return vc.to_json()

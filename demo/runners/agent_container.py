@@ -271,6 +271,10 @@ class AriesAgent(DemoAgent):
                 await self.admin_POST(
                     f"/issue-credential-2.0/records/{cred_ex_id}/send-request"
                 )
+            elif message["by_format"]["cred_offer"].get("vc_di"):
+                await self.admin_POST(
+                    f"/issue-credential-2.0/records/{cred_ex_id}/send-request"
+                )
             elif message["by_format"]["cred_offer"].get("ld_proof"):
                 holder_did = await self.admin_POST(
                     "/wallet/did/create",
@@ -695,7 +699,7 @@ class AgentContainer:
         genesis_txns: str = None,
         genesis_txn_list: str = None,
         tails_server_base_url: str = None,
-        cred_type: str = CRED_FORMAT_INDY,
+        cred_type: str = CRED_FORMAT_VC_DI,
         show_timing: bool = False,
         multitenant: bool = False,
         mediation: bool = False,
@@ -950,9 +954,7 @@ class AgentContainer:
     ):
         log_status("#13 Issue credential offer to X")
 
-        if self.cred_type in [
-            CRED_FORMAT_INDY, CRED_FORMAT_VC_DI
-        ]:
+        if self.cred_type == CRED_FORMAT_INDY:
             cred_preview = {
                 "@type": CRED_PREVIEW_TYPE,
                 "attributes": cred_attrs,
@@ -963,6 +965,25 @@ class AgentContainer:
                 "auto_remove": False,
                 "credential_preview": cred_preview,
                 "filter": {"indy": {"cred_def_id": cred_def_id}},
+                "trace": self.exchange_tracing,
+            }
+            cred_exchange = await self.agent.admin_POST(
+                "/issue-credential-2.0/send-offer", offer_request
+            )
+
+            return cred_exchange
+
+        elif self.cred_type == CRED_FORMAT_VC_DI:
+            cred_preview = {
+                "@type": CRED_PREVIEW_TYPE,
+                "attributes": cred_attrs,
+            }
+            offer_request = {
+                "connection_id": self.agent.connection_id,
+                "comment": f"Offer on cred def id {cred_def_id}",
+                "auto_remove": False,
+                "credential_preview": cred_preview,
+                "filter": {"vc_di": {"cred_def_id": cred_def_id}},
                 "trace": self.exchange_tracing,
             }
             cred_exchange = await self.agent.admin_POST(
