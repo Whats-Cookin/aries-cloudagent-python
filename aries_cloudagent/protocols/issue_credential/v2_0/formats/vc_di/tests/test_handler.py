@@ -565,6 +565,7 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
             assert attachment.data.base64
 
     async def test_issue_credential_non_revocable(self):
+<<<<<<< HEAD
         CRED_DEF_NR = deepcopy(CRED_DEF)
         CRED_DEF_NR["value"]["revocation"] = None
         attr_values = {
