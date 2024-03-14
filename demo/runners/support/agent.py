@@ -673,7 +673,11 @@ class DemoAgent:
         did: str = None,
         verkey: str = None,
         role: str = "TRUST_ANCHOR",
+<<<<<<< HEAD
         cred_type: str = None,
+=======
+        cred_type: str = CRED_FORMAT_INDY,
+>>>>>>> abe6adc03743b0a2fd0664f5b90fc463d95f7cad
     ):
         if cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
             # if registering a did for issuing indy credentials, publish the did on the ledger
@@ -731,7 +735,11 @@ class DemoAgent:
         public_did=False,
         webhook_port: int = None,
         mediator_agent=None,
+<<<<<<< HEAD
         cred_type: str = None,
+=======
+        cred_type: str = CRED_FORMAT_INDY,
+>>>>>>> abe6adc03743b0a2fd0664f5b90fc463d95f7cad
         endorser_agent=None,
         taa_accept=False,
     ):

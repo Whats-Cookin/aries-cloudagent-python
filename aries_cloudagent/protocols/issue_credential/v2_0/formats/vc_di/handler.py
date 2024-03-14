@@ -1,4 +1,5 @@
-"""V2.0 issue-credential indy credential format handler."""
+"""V2.0 issue-credential vc_di credential format handler.
+   indy compatible, attachment is a valid verifiable credential"""
 
 import json
 import logging
@@ -98,6 +99,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         Schema = mapping[message_type]
 
         # Validate, throw if not valid
+        print("Loading:", Schema, attachment_data)
         Schema(unknown=RAISE).load(attachment_data)
 
     async def get_detail_record(self, cred_ex_id: str) -> V20CredExRecordVCDI:
@@ -280,7 +282,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
                 "issuanceDate": "2024-01-10T04:44:29.563418Z",
             },
         }
-
         return self.get_format_data(CRED_20_OFFER, vcdi_cred_offer)
 
     async def receive_offer(
