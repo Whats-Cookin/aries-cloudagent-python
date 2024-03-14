@@ -37,13 +37,26 @@ from ..handler import LOGGER as INDY_LOGGER
 
 # setup any required test data, see "formats/indy/tests/test_handler.py"
 # ...
-
+TEST_DID = "LjgpST2rjsoxYegQDRm7EL"
+SCHEMA_NAME = "bc-reg"
+SCHEMA_TXN = 12
+SCHEMA_ID = f"{TEST_DID}:2:{SCHEMA_NAME}:1.0"
+SCHEMA = {
+    "ver": "1.0",
+    "id": SCHEMA_ID,
+    "name": SCHEMA_NAME,
+    "version": "1.0",
+    "attrNames": ["legalName", "jurisdictionId", "incorporationDate"],
+    "seqNo": SCHEMA_TXN,
+}
+CRED_DEF_ID = f"{TEST_DID}:3:CL:12:tag1"
 
 # IC - these are the minimal unit tests required for the new VCDI format class
 #      they should verify that the formatter generates and receives/handles
 #      credential offers/requests/issues with the new VCDI format
 #      (see "formats/indy/tests/test_handler.py" for the unit tests for the
 #       existing Indy tests, these should work basically the same way)
+
 
 class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -65,7 +78,38 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
 
     async def test_create_offer(self):
         # any required tests, see "formats/indy/tests/test_handler.py"
-        assert False
+
+        cred_def_id = CRED_DEF_ID
+        connection_id = "test_conn_id"
+        cred_attrs = {} 
+        cred_attrs[cred_def_id] = {
+            "name": "Alice Smith",
+            "date": "2018-05-28",
+            "degree": "Maths",
+            "birthdate_dateint": birth_date.strftime(birth_date_format),
+            "timestamp": str(int(time.time())),
+        }
+
+        cred_preview = {
+            "@type": CRED_PREVIEW_TYPE,
+            "attributes": [
+                {"name": n, "value": v}
+                for (n, v) in cred_attrs[cred_def_id].items()
+            ],
+        }
+
+        offer_request = {
+            "connection_id": connection_id,
+            "comment": f"Offer on cred def id {cred_def_id}",
+            "auto_remove": False,
+            "credential_preview": cred_preview,
+            "filter": {"vc_di": {"cred_def_id": cred_def_id}},
+            "trace": exchange_tracing,
+        }
+        # this normally is sent to  "/issue-credential/send-offer", offer_request
+        # maybe this is a different unit test? 
+        # this data is from the faber vc_di
+
 
     async def test_receive_offer(self):
         # any required tests, see "formats/indy/tests/test_handler.py"
@@ -86,5 +130,3 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
     async def test_issue_credential_non_revocable(self):
         # any required tests, see "formats/indy/tests/test_handler.py"
         assert False
-
-
