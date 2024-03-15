@@ -1,5 +1,6 @@
 from copy import deepcopy
 from time import time
+from pprint import pprint
 import json
 import datetime
 from unittest import IsolatedAsyncioTestCase
@@ -9,15 +10,28 @@ from marshmallow import ValidationError
 from .. import handler as test_module
 
 from .......core.in_memory import InMemoryProfile
+from aries_askar.store import Entry
 from .......ledger.base import BaseLedger
 from .......ledger.multiple_ledger.ledger_requests_executor import (
     IndyLedgerRequestsExecutor,
 )
+from anoncreds import (CredentialDefinition, Schema)
+from aries_cloudagent.core.in_memory.profile import (
+    InMemoryProfile,
+    InMemoryProfileSession,
+)
+from aries_cloudagent.anoncreds.tests.test_issuer import (
+    MockCredDefEntry
+)
+from aries_cloudagent.anoncreds.tests.test_revocation import (
+    MockEntry
+)
+from aries_cloudagent.anoncreds.models.anoncreds_schema import AnonCredsSchema
 from aries_cloudagent.wallet.did_info import DIDInfo
 from aries_cloudagent.wallet.did_method import DIDMethod
 from aries_cloudagent.wallet.key_type import KeyType
 from aries_cloudagent.wallet.base import BaseWallet
-from aries_cloudagent.storage.askar import AskarProfile
+from aries_cloudagent.multitenant.askar_profile_manager import AskarAnoncredsProfile
 
 from .......multitenant.base import BaseMultitenantManager
 from .......multitenant.manager import MultitenantManager
@@ -238,12 +252,22 @@ VCDI_CRED = {
 class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         # any required setup, see "formats/indy/tests/test_handler.py"
-        self.session = InMemoryProfile.test_session()
+        self.session = InMemoryProfile.test_session(profile_class=AskarAnoncredsProfile)
         self.profile = self.session.profile
-        self.context = self.profile.context
-        self.askar_profile = mock.create_autospec(AskarProfile, instance=True)
+        self.context = self.session.profile.context
 
         setattr(self.profile, "session", mock.MagicMock(return_value=self.session))
+
+        # Issuer
+        self.patcher = mock.patch('aries_cloudagent.protocols.issue_credential.v2_0.formats.vc_di.handler.AnonCredsIssuer', autospec=True)
+        self.MockAnonCredsIssuer = self.patcher.start()
+        self.addCleanup(self.patcher.stop)
+
+        self.issuer = mock.create_autospec(AnonCredsIssuer, instance=True)
+        self.MockAnonCredsIssuer.return_value = self.issuer
+
+        self.issuer.profile = self.profile
+
 
         # Wallet
         self.public_did_info = mock.MagicMock() 
@@ -277,10 +301,6 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
         self.cache = InMemoryCache()
         self.context.injector.bind_instance(BaseCache, self.cache)
 
-        # Issuer
-        self.issuer = mock.MagicMock(AnonCredsIssuer, autospec=True)
-        self.issuer.profile = self.askar_profile
-        self.context.injector.bind_instance(AnonCredsIssuer, self.issuer) 
 
         # Holder
         self.holder = mock.MagicMock(IndyHolder, autospec=True)
@@ -357,8 +377,12 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
                 await self.handler._check_uniqueness("dummy-cx-id")
             assert "detail record already exists" in str(context.exception)
 
-    async def test_create_offer(self):
-        # any required tests, see "formats/indy/tests/test_handler.py"
+    async def test_create_offer(self, mock_session_handle):
+
+        age = 24
+        d = datetime.date.today()
+        birth_date = datetime.date(d.year - age, d.month, d.day)
+        birth_date_format = "%Y%m%d"
 
         cred_def_id = CRED_DEF_ID
         connection_id = "test_conn_id"
@@ -388,10 +412,28 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
             ],
         )
 
+        schema_id_parts = SCHEMA_ID.split(":")
+        cred_def_record = StorageRecord(
+            CRED_DEF_SENT_RECORD_TYPE,
+            CRED_DEF_ID,
+            {
+                "schema_id": SCHEMA_ID,
+                "schema_issuer_did": schema_id_parts[0],
+                "schema_name": schema_id_parts[-2],
+                "schema_version": schema_id_parts[-1],
+                "issuer_did": TEST_DID,
+                "cred_def_id": CRED_DEF_ID,
+                "epoch": str(int(time())),
+            },
+        )
+        await self.session.storage.add_record(cred_def_record)
+
+
         original_create_credential_offer = self.issuer.create_credential_offer
         self.issuer.create_credential_offer = mock.CoroutineMock(
             return_value=json.dumps(VCDI_OFFER)
         )
+
 
         (cred_format, attachment) = await self.handler.create_offer(cred_proposal)
 
@@ -475,6 +517,10 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
             await self.handler.create_request(
                 cred_ex_record, {"holder_did": holder_did}
             )
+        cred_ex_record = mock.MagicMock()
+        cred_offer_message = mock.MagicMock()
+        await self.handler.receive_offer(cred_ex_record, cred_offer_message)
+
 
     async def test_create_request(self):
         holder_did = "did"
