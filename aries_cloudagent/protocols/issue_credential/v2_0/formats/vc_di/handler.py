@@ -291,7 +291,11 @@ class VCDICredFormatHandler(V20CredFormatHandler):
     async def create_request(
         self, cred_ex_record: V20CredExRecord, request_data: Mapping = None
     ) -> CredFormatAttachment:
-        """Create vcdi credential request."""
+        """Create vcdi credential request.
+
+           The request should follow the format at
+           https://github.com/hyperledger/aries-rfcs/tree/main/features/0809-w3c-data-integrity-credential-attachment#credential-request-attachment-format
+        """
         if cred_ex_record.state != V20CredExRecord.STATE_OFFER_RECEIVED:
             raise V20CredFormatError(
                 "vcdi issue credential format cannot start from credential request"
