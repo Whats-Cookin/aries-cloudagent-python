@@ -430,32 +430,48 @@ class VCDICredFormatHandler(V20CredFormatHandler):
 
         # I got this error for trying
         # TypeError: Object of type ThreadDecorator is not JSON serializable
-        cred_offer_json = json.dumps(cred_ex_record.cred_offer.__dict__)
-        cred_request_json = json.dumps(cred_ex_record.cred_request.__dict__)
+        cred_offer_dict = cred_ex_record.cred_offer.attachment()
+        print("cred_offer_dict:::::::::", cred_offer_dict)
+        cred_request_dict = cred_ex_record.cred_request.attachment()
+        print("cred_request_dict:::::::::", cred_request_dict)
 
-        cred_offer = cred_offer_json["offers~attach"][0]
-        cred_request = cred_request_json["requests~attach"][0]
+        #cred_offer = cred_offer_dict["offers~attach"]
+        #print("cred_offer in HANDLER:::::::::{}".format(cred_offer))
+        #cred_request = cred_request_dict["requests~attach"]
+        #print("cred_request in HANDLER:::::::::{}".format(cred_request))
+
         # cred_offer = cred_ex_record.cred_offer.attachment(
         #     AnonCredsCredFormatHandler.format
         # )
         # cred_request = cred_ex_record.cred_request.attachment(
         #     AnonCredsCredFormatHandler.format
         # )
-        cred_values = cred_ex_record.cred_offer.credential_preview.attr_dict(
+        cred_values_dict = cred_ex_record.cred_offer.credential_preview.attr_dict(
             decode=False
         )
-        print("cred_offer in HANDLER:::::::::{}".format(cred_offer))
-        print("cred_request in HANDLER:::::::::{}".format(cred_request))
-        print("cred_values in HANDLER:::::::::{}".format(cred_values))
+        print("cred_values in HANDLER:::::::::{}".format(cred_values_dict))
+
         issuer = AnonCredsIssuer(self.profile)
         # TODO - implement a separate create_credential for vcdi
-        # IC - I think this is the new "issuer.create_credential_vc_di()" method that
-        #      has been implemented already; it needs to be called from here somewhere
-        #      (see the corresponding method in "formats/indy/handler.py", the new method
-        #       should work basically the same way, except using the new VCDI format)
-        cred_json = await issuer.create_credential_vc_di(
-            cred_offer, cred_request, cred_values
-        )
+        # IC - the method in AnonCredsIssuer assumes all the data structures are
+        #      in the old "Indy" format ...
+        # IC - the json needs to be in the format of
+        #cred_json = await issuer.create_credential(
+        #    cred_offer_dict, cred_request_dict, cred_values_dict
+        #)
+
+        # IC: this needs to be re-formatted into a vc_di credential issue message
+        #     see test vectors here:  https://github.com/TimoGlastra/anoncreds-w3c-test-vectors
+        #     the relevant example is this one (I think):
+        #     https://github.com/TimoGlastra/anoncreds-w3c-test-vectors/blob/main/test-vectors/aries-issue-credential-di-issue.json
+        # Note that we ALSO need a schema for this (like was implemented for VCDICredAbstractSchema or VCDICredRequestSchema)
+        # ... in order to validate received messages ...
+
+        credential = cred_offer_dict["credential"]
+        credential["issuanceDate"] = "2024-01-10T04:44:29.563418Z"
+        print("credential:::", credential)
+
+        # not sure about these ...
         # assert detail_credential.credential and isinstance(
         #     detail_credential.credential, VerifiableCredential
         # )
@@ -469,7 +485,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         # except VcLdpManagerError as err:
         #     raise V20CredFormatError("Failed to issue credential") from err
 
-        result = self.get_format_data(CRED_20_ISSUE, json.loads(cred_json))
+        result = self.get_format_data(CRED_20_ISSUE, credential)
 
         cred_rev_id = None
         rev_reg_def_id = None
