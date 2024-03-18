@@ -676,7 +676,7 @@ class AnonCredsIssuer:
         async with ledger:
             schema_id = await ledger.credential_definition_id2schema_id(cred_def_id)
         schema_result = await anoncreds_registry.get_schema(self.profile, schema_id)
-        cred_def_id = credential_offer["cred_def_id"]
+        cred_def_id = credential_offer["binding_method"]["anoncreds_link_secret"]["cred_def_id"]
         schema_attributes = schema_result.schema_value.attr_names
 
         try:
@@ -710,16 +710,30 @@ class AnonCredsIssuer:
             raw_values[attribute] = str(credential_value)
 
         try:
-            credential = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: Credential.create(
-                    cred_def.raw_value,
-                    cred_def_private.raw_value,
-                    credential_offer,
-                    credential_request,
-                    raw_values,
-                ),
-            )
+            #credential = await asyncio.get_event_loop().run_in_executor(
+            #    None,
+            #    lambda: Credential.create(
+            #        cred_def.raw_value,
+            #        cred_def_private.raw_value,
+            #        credential_offer,
+            #        credential_request,
+            #        raw_values,
+            #    ),
+            #)
+            credential = {
+                "@context": [
+                  "https://www.w3.org/2018/credentials/v1",
+                  "https://w3id.org/security/data-integrity/v2",
+                  {
+                    "@vocab": "https://www.w3.org/ns/credentials/issuer-dependent#"
+                  }
+                ],
+                "type": ["VerifiableCredential"],
+                "issuer": x,
+                "credentialSubject": x,
+                "proof": x,
+                "issuanceDate": "2024-01-10T04:44:29.563418Z"
+            }
         except AnoncredsError as err:
             raise AnonCredsIssuerError("Error creating credential") from err
 
