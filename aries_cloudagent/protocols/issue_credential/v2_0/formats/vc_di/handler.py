@@ -374,7 +374,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
                     await entry.set_result(cred_req_result, 3600)
         if not cred_req_result:
             cred_req_result = await _create()
-        print("cred_def_result:::::::::::{}".format(cred_req_result))
         detail_record = V20CredExRecordVCDI(
             cred_ex_id=cred_ex_record.cred_ex_id,
             cred_request_metadata=cred_req_result["metadata"],
@@ -400,7 +399,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             await detail_record.save(session, reason="create v2.0 credential request")
 
         tmp = self.get_format_data(CRED_20_REQUEST, vcdi_cred_request)
-        print("returning cred request format:", tmp)
         return tmp
 
     async def receive_request(
@@ -418,47 +416,65 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         """Issue vcdi credential."""
         await self._check_uniqueness(cred_ex_record.cred_ex_id)
 
-        # attached_credential = cred_ex_record.cred_offer.attachment(
-        #     VCDICredFormatHandler.format
-        # )
-        # detail_credential = VCDICredAbstract.deserialize(attached_credential)
-        # binding_proof = cred_ex_record.cred_request.attachment(
-        #     VCDICredFormatHandler.format
-        # )
-        # detail_proof = VCDICredRequest.deserialize(binding_proof)
-        # manager = self.profile.inject(VcLdpManager)
-
-        # I got this error for trying
-        # TypeError: Object of type ThreadDecorator is not JSON serializable
-        cred_offer_dict = cred_ex_record.cred_offer.attachment()
-        print("cred_offer_dict:::::::::", cred_offer_dict)
-        cred_request_dict = cred_ex_record.cred_request.attachment()
-        print("cred_request_dict:::::::::", cred_request_dict)
-
-        #cred_offer = cred_offer_dict["offers~attach"]
-        #print("cred_offer in HANDLER:::::::::{}".format(cred_offer))
-        #cred_request = cred_request_dict["requests~attach"]
-        #print("cred_request in HANDLER:::::::::{}".format(cred_request))
-
-        # cred_offer = cred_ex_record.cred_offer.attachment(
-        #     AnonCredsCredFormatHandler.format
-        # )
-        # cred_request = cred_ex_record.cred_request.attachment(
-        #     AnonCredsCredFormatHandler.format
-        # )
-        cred_values_dict = cred_ex_record.cred_offer.credential_preview.attr_dict(
+        cred_offer = cred_ex_record.cred_offer.attachment(VCDICredFormatHandler.format)
+        cred_request = cred_ex_record.cred_request.attachment(
+            VCDICredFormatHandler.format
+        )
+        cred_values = cred_ex_record.cred_offer.credential_preview.attr_dict(
             decode=False
         )
-        print("cred_values in HANDLER:::::::::{}".format(cred_values_dict))
 
-        issuer = AnonCredsIssuer(self.profile)
-        # TODO - implement a separate create_credential for vcdi
+        nonce = cred_offer["binding_method"]["anoncreds_link_secret"]["nonce"]
+        cred_def_id = cred_offer["binding_method"]["anoncreds_link_secret"][
+            "cred_def_id"
+        ]
+
+        # workaround for getting schema_id
+        ledger = self.profile.inject(BaseLedger)
+        multitenant_mgr = self.profile.inject_or(BaseMultitenantManager)
+        if multitenant_mgr:
+            ledger_exec_inst = IndyLedgerRequestsExecutor(self.profile)
+        else:
+            ledger_exec_inst = self.profile.inject(IndyLedgerRequestsExecutor)
+        ledger = (
+            await ledger_exec_inst.get_ledger_for_identifier(
+                cred_def_id,
+                txn_record_type=GET_CRED_DEF,
+            )
+        )[1]
+
+        async with ledger:
+            schema_id = await ledger.credential_definition_id2schema_id(cred_def_id)
+
         # IC - the method in AnonCredsIssuer assumes all the data structures are
         #      in the old "Indy" format ...
-        # IC - the json needs to be in the format of
-        #cred_json = await issuer.create_credential(
-        #    cred_offer_dict, cred_request_dict, cred_values_dict
-        #)
+        legacy_offer = {
+            "schema_id": schema_id,
+            "cred_def_id": cred_def_id,
+            "key_correctness_proof": cred_offer["binding_method"][
+                "anoncreds_link_secret"
+            ]["key_correctness_proof"],
+            "nonce": cred_offer["binding_method"]["anoncreds_link_secret"]["nonce"],
+        }
+        legacy_request = {
+            "prover_did": cred_request["binding_proof"]["anoncreds_link_secret"][
+                "entropy"
+            ],
+            "cred_def_id": cred_def_id,
+            "blinded_ms": cred_request["binding_proof"]["anoncreds_link_secret"][
+                "blinded_ms"
+            ],
+            "blinded_ms_correctness_proof": cred_request["binding_proof"][
+                "anoncreds_link_secret"
+            ]["blinded_ms_correctness_proof"],
+            "nonce": nonce,
+        }
+
+        issuer = AnonCredsIssuer(self.profile)
+        # IC - implement a separate create_credential for vcdi
+        credential = await issuer.create_credential_w3c(
+            legacy_offer, legacy_request, cred_values
+        )
 
         # IC: this needs to be re-formatted into a vc_di credential issue message
         #     see test vectors here:  https://github.com/TimoGlastra/anoncreds-w3c-test-vectors
@@ -467,8 +483,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         # Note that we ALSO need a schema for this (like was implemented for VCDICredAbstractSchema or VCDICredRequestSchema)
         # ... in order to validate received messages ...
 
-        credential = cred_offer_dict["credential"]
-        credential["issuanceDate"] = "2024-01-10T04:44:29.563418Z"
         print("credential:::", credential)
 
         # not sure about these ...
