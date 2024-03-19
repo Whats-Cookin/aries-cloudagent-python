@@ -4,6 +4,8 @@ shopt -s nocasematch
 
 cd $(dirname $0)
 
+RESOLUTION="$1"
+shift
 AGENT="$1"
 shift
 ARGS=""
@@ -107,8 +109,9 @@ do
     cat <<EOF
 
 Usage:
-   ./demo_run <agent> [OPTIONS]
+   ./demo_run <resolution> <agent> [OPTIONS]
 
+   - <resolution> is one of the docker option to build or run.
    - <agent> is one of alice, faber, acme, performance.
    - Options:
       --events - display on the terminal the webhook events from the ACA-Py agent.
@@ -127,6 +130,15 @@ EOF
   esac
   ARGS="${ARGS:+$ARGS }$i"
 done
+
+if [ "$RESOLUTION" = "build" ]; then
+  DOCKER_RESOLUTION="build"
+elif [ "$RESOLUTION" = "run" ]; then
+  DOCKER_RESOLUTION="run"
+else
+  echo "Please specify whether you want to build or run the agent. Choose from 'build' or 'run'."
+  exit 1
+fi
 
 if [ "$AGENT" = "faber" ]; then
   AGENT_MODULE="faber"
@@ -155,9 +167,13 @@ if [ ! -z "$AGENT_PORT_OVERRIDE" ]; then
   AGENT_PORT_RANGE="$AGENT_PORT-$AGENT_PORT_END"
 fi
 
-echo "Preparing agent image..."
-docker build -t acapy-base -f ../docker/Dockerfile .. || exit 1
-docker build -t faber-alice-demo -f ../docker/Dockerfile.demo --build-arg from_image=acapy-base .. || exit 1
+# 1. Build the agent image
+if [ "$DOCKER_RESOLUTION" = "build" ]; then
+  echo "Preparing agent image..."
+  docker build -t acapy-base -f ../docker/Dockerfile .. || exit 1
+  docker build -t faber-alice-demo -f ../docker/Dockerfile.demo --build-arg from_image=acapy-base .. || exit 1
+  exit 0
+fi
 
 if [ ! -z "$DOCKERHOST" ]; then
   # provided via APPLICATION_URL environment variable
@@ -262,9 +278,16 @@ if [ "$OSTYPE" = "msys" ]; then
 fi
 DOCKER=${DOCKER:-docker}
 
-$DOCKER run --name $AGENT --rm -it ${DOCKER_OPTS} \
-  --network=${DOCKER_NET} \
-  -p 0.0.0.0:$AGENT_PORT_RANGE:$AGENT_PORT_RANGE \
-  ${DOCKER_VOL} \
-  $DOCKER_ENV \
-  faber-alice-demo $AGENT_MODULE --port $AGENT_PORT $ARGS
+# 2. Run the agent
+if [ "$DOCKER_RESOLUTION" = "run" ]; then
+  echo "Running agent $AGENT..."
+  $DOCKER run --name $AGENT --rm -it ${DOCKER_OPTS} \
+    --network=${DOCKER_NET} \
+    -p 0.0.0.0:$AGENT_PORT_RANGE:$AGENT_PORT_RANGE \
+    ${DOCKER_VOL} \
+    -v $(pwd)/../aries_cloudagent:/home/aries/aries_cloudagent \
+    -v $(pwd)/../scripts:/home/aries/scripts \
+    -v $(pwd)/../demo:/home/aries/demo \
+    $DOCKER_ENV \
+    faber-alice-demo $AGENT_MODULE --port $AGENT_PORT $ARGS
+fi
