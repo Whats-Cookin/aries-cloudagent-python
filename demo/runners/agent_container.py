@@ -329,6 +329,9 @@ class AriesAgent(DemoAgent):
             self.log(f"Revocation registry ID: {rev_reg_id}")
             self.log(f"Credential revocation ID: {cred_rev_id}")
 
+    async def handle_issue_credential_v2_0_vc_di(self, message):
+        self.log(f"VC_DI Credential: message = {message}")
+
     async def handle_issue_credential_v2_0_ld_proof(self, message):
         self.log(f"LD Credential: message = {message}")
 
