@@ -4,16 +4,8 @@
 import json
 import logging
 from typing import Mapping, Tuple
-from aries_cloudagent.protocols.issue_credential.v2_0.formats.anoncreds.handler import (
-    AnonCredsCredFormatHandler,
-)
 from aries_cloudagent.protocols.issue_credential.v2_0.models.detail.vc_di import (
     V20CredExRecordVCDI,
-)
-from aries_cloudagent.vc.vc_ld.manager import VcLdpManager, VcLdpManagerError
-from aries_cloudagent.vc.vc_ld.models.credential import (
-    VerifiableCredential,
-    VerifiableCredentialSchema,
 )
 
 from marshmallow import RAISE
@@ -25,15 +17,9 @@ from ......anoncreds.holder import AnonCredsHolder, AnonCredsHolderError
 from ......anoncreds.issuer import (
     AnonCredsIssuer,
 )
-from ......indy.models.cred_abstract import (
-    VCDICredAbstract,
-    VCDICredAbstractSchema,
-)
-from ......indy.models.cred_request import (
-    BindingProof,
-    VCDICredRequest,
-    VCDICredRequestSchema,
-)
+from ......indy.models.cred import VCDIIndyCredentialSchema
+from ......indy.models.cred_abstract import VCDICredAbstractSchema
+from ......indy.models.cred_request import VCDICredRequestSchema
 from ......cache.base import BaseCache
 from ......ledger.base import BaseLedger
 from ......ledger.multiple_ledger.ledger_requests_executor import (
@@ -95,7 +81,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             CRED_20_PROPOSAL: CredDefQueryStringSchema,
             CRED_20_OFFER: VCDICredAbstractSchema,
             CRED_20_REQUEST: VCDICredRequestSchema,
-            CRED_20_ISSUE: VerifiableCredentialSchema,
+            CRED_20_ISSUE: VCDIIndyCredentialSchema,
         }
 
         # Get schema class
@@ -284,6 +270,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
                 "issuanceDate": "2024-01-10T04:44:29.563418Z",
             },
         }
+
         return self.get_format_data(CRED_20_OFFER, vcdi_cred_offer)
 
     async def receive_offer(
@@ -424,7 +411,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             decode=False
         )
 
-        nonce = cred_offer["binding_method"]["anoncreds_link_secret"]["nonce"]
         cred_def_id = cred_offer["binding_method"]["anoncreds_link_secret"][
             "cred_def_id"
         ]
@@ -467,7 +453,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             "blinded_ms_correctness_proof": cred_request["binding_proof"][
                 "anoncreds_link_secret"
             ]["blinded_ms_correctness_proof"],
-            "nonce": nonce,
+            "nonce": cred_request["binding_proof"]["anoncreds_link_secret"]["nonce"],
         }
 
         issuer = AnonCredsIssuer(self.profile)
@@ -479,11 +465,15 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         # IC: this needs to be re-formatted into a vc_di credential issue message
         #     see test vectors here:  https://github.com/TimoGlastra/anoncreds-w3c-test-vectors
         #     the relevant example is this one (I think):
-        #     https://github.com/TimoGlastra/anoncreds-w3c-test-vectors/blob/main/test-vectors/aries-issue-credential-di-issue.json
-        # Note that we ALSO need a schema for this (like was implemented for VCDICredAbstractSchema or VCDICredRequestSchema)
+        #     https://github.com/TimoGlastra/anoncreds-w3c-test-vectors/
+        #             blob/main/test-vectors/aries-issue-credential-di-issue.json
+        # Note that we ALSO need a schema for this 
+        #     (like was implemented for VCDICredAbstractSchema or VCDICredRequestSchema)
         # ... in order to validate received messages ...
 
-        print("credential:::", credential)
+        vcdi_credential = {
+            "credential": json.loads(credential),
+        }
 
         # not sure about these ...
         # assert detail_credential.credential and isinstance(
@@ -499,7 +489,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         # except VcLdpManagerError as err:
         #     raise V20CredFormatError("Failed to issue credential") from err
 
-        result = self.get_format_data(CRED_20_ISSUE, credential)
+        result = self.get_format_data(CRED_20_ISSUE, vcdi_credential)
 
         cred_rev_id = None
         rev_reg_def_id = None
@@ -544,16 +534,17 @@ class VCDICredFormatHandler(V20CredFormatHandler):
     ) -> None:
         """Store vcdi credential."""
         cred = cred_ex_record.cred_issue.attachment(VCDICredFormatHandler.format)
+        cred = cred["credential"]
 
         rev_reg_def = None
         anoncreds_registry = self.profile.inject(AnonCredsRegistry)
         cred_def_result = await anoncreds_registry.get_credential_definition(
-            self.profile, cred["cred_def_id"]
+            self.profile, cred["proof"][0]["verificationMethod"]
         )
-        if cred.get("rev_reg_id"):
+        if cred["proof"][0].get("rev_reg_id"):
             rev_reg_def_result = (
                 await anoncreds_registry.get_revocation_registry_definition(
-                    self.profile, cred["rev_reg_id"]
+                    self.profile, cred["proof"][0]["rev_reg_id"]
                 )
             )
             rev_reg_def = rev_reg_def_result.revocation_registry
@@ -574,7 +565,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
                     f"No credential exchange {VCDICredFormatHandler.format.aries} "
                     f"detail record found for cred ex id {cred_ex_record.cred_ex_id}"
                 )
-            cred_id_stored = await holder.store_credential(
+            cred_id_stored = await holder.store_credential_w3c(
                 cred_def_result.credential_definition.serialize(),
                 cred,
                 detail_record.cred_request_metadata,
@@ -584,8 +575,8 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             )
 
             detail_record.cred_id_stored = cred_id_stored
-            detail_record.rev_reg_id = cred.get("rev_reg_id", None)
-            detail_record.cred_rev_id = cred.get("cred_rev_id", None)
+            detail_record.rev_reg_id = cred["proof"][0].get("rev_reg_id", None)
+            detail_record.cred_rev_id = cred["proof"][0].get("cred_rev_id", None)
 
             async with self.profile.session() as session:
                 # Store detail record, emit event

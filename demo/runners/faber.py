@@ -513,6 +513,9 @@ async def main(args):
             log_file=faber_agent.log_file,
             log_config=faber_agent.log_config,
             log_level=faber_agent.log_level,
+            reuse_connections=faber_agent.reuse_connections,
+            multi_use_invitations=faber_agent.multi_use_invitations,
+            public_did_connections=faber_agent.public_did_connections,
             extra_args=extra_args,
         )
 
@@ -546,7 +549,11 @@ async def main(args):
 
         # generate an invitation for Alice
         await faber_agent.generate_invitation(
-            display_qr=True, reuse_connections=faber_agent.reuse_connections, wait=True
+            display_qr=True,
+            reuse_connections=faber_agent.reuse_connections,
+            multi_use_invitations=faber_agent.multi_use_invitations,
+            public_did_connections=faber_agent.public_did_connections,
+            wait=True,
         )
 
         exchange_tracing = False
@@ -843,6 +850,8 @@ async def main(args):
                 await faber_agent.generate_invitation(
                     display_qr=True,
                     reuse_connections=faber_agent.reuse_connections,
+                    multi_use_invitations=faber_agent.multi_use_invitations,
+                    public_did_connections=faber_agent.public_did_connections,
                     wait=True,
                 )
 

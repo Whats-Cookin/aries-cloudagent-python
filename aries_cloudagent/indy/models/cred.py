@@ -1,8 +1,10 @@
 """Credential artifacts."""
 
-from typing import Mapping
+from typing import Mapping, Sequence, Union
 
 from marshmallow import EXCLUDE, ValidationError, fields
+
+from ...vc.vc_ld.models.credential import CredentialSchema, VerifiableCredential
 
 from ...messaging.models.base import BaseModel, BaseModelSchema
 from ...messaging.valid import (
@@ -15,6 +17,7 @@ from ...messaging.valid import (
     NUM_STR_ANY_EXAMPLE,
     NUM_STR_ANY_VALIDATE,
 )
+from .cred_abstract import BindingMethodSchema, CredentialSchema
 
 
 class IndyAttrValue(BaseModel):
@@ -154,4 +157,43 @@ class IndyCredentialSchema(BaseModelSchema):
     )
     witness = fields.Dict(
         allow_none=True, metadata={"description": "Witness for revocation proof"}
+    )
+
+
+class VCDIIndyCredential(BaseModel):
+    """VCDI Indy credential."""
+
+    class Meta:
+        """VCDI Indy credential metadata."""
+
+        schema_class = "VCDIIndyCredentialSchema"
+
+    def __init__(
+        self,
+        credential: dict = None,
+        **kwargs,
+    ):
+        """Initialize vcdi cred abstract object.
+
+        Args:
+            data_model_versions_supported: supported versions for data model
+            binding_required: boolean value
+            binding_methods: required if binding_required is true
+            credential: credential object
+        """
+        super().__init__(**kwargs)
+        self.credential = credential
+
+
+class VCDIIndyCredentialSchema(BaseModelSchema):
+    """VCDI Indy credential schema."""
+
+    class Meta:
+        """VCDI Indy credential schemametadata."""
+
+        model_class = VCDIIndyCredential
+        unknown = EXCLUDE
+
+    credential = fields.Dict(
+        fields.Str(), required=True, metadata={"description": "", "example": ""}
     )

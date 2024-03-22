@@ -16,12 +16,6 @@ from anoncreds import (
     W3cCredential,
 )
 from aries_askar import AskarError
-from aries_cloudagent.ledger.base import BaseLedger
-from aries_cloudagent.ledger.multiple_ledger.ledger_requests_executor import (
-    GET_CRED_DEF,
-    IndyLedgerRequestsExecutor,
-)
-from aries_cloudagent.multitenant.base import BaseMultitenantManager
 
 from ..askar.profile_anon import (
     AskarAnoncredsProfile,
