@@ -157,7 +157,6 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
         self.context = self.profile.context
         self.askar_profile = mock.create_autospec(AskarProfile, instance=True)
 
-
         setattr(self.profile, "session", mock.MagicMock(return_value=self.session))
 
         # Issuer
@@ -303,10 +302,9 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
     @mock.patch.object(InMemoryProfileSession, "handle")
     async def test_create_offer(self, mock_session_handle):
 
-        #mock_entry = mock.MagicMock(spec=Entry)
-        #mock_entry.name = 'entry name'
-        #mock_entry.raw_value = CRED_DEF
-
+        # mock_entry = mock.MagicMock(spec=Entry)
+        # mock_entry.name = 'entry name'
+        # mock_entry.raw_value = CRED_DEF
 
         schema = Schema.create(
             name="MYCO Biomarker",
@@ -325,7 +323,7 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
         mock_session_handle.fetch = mock.CoroutineMock(
             return_value=MockEntry(raw_value=cred_def.to_json_buffer())
         )
-        #mock_session_handle.fetch = mock.CoroutineMock(return_value=MockCredDefEntry(name="name", epoch="1"))
+        # mock_session_handle.fetch = mock.CoroutineMock(return_value=MockCredDefEntry(name="name", epoch="1"))
 
         age = 24
         d = datetime.date.today()

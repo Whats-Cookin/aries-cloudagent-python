@@ -467,7 +467,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         #     the relevant example is this one (I think):
         #     https://github.com/TimoGlastra/anoncreds-w3c-test-vectors/
         #             blob/main/test-vectors/aries-issue-credential-di-issue.json
-        # Note that we ALSO need a schema for this 
+        # Note that we ALSO need a schema for this
         #     (like was implemented for VCDICredAbstractSchema or VCDICredRequestSchema)
         # ... in order to validate received messages ...
 

@@ -205,7 +205,14 @@ class AnonCredsHolder:
         except AnoncredsError as err:
             raise AnonCredsHolderError("Error processing received credential") from err
 
-        return await self._finish_store_credential(credential_definition, cred_recvd, credential_request_metadata, credential_attr_mime_types, credential_id, rev_reg_def)
+        return await self._finish_store_credential(
+            credential_definition,
+            cred_recvd,
+            credential_request_metadata,
+            credential_attr_mime_types,
+            credential_id,
+            rev_reg_def,
+        )
 
     async def _finish_store_credential(
         self,
@@ -312,7 +319,14 @@ class AnonCredsHolder:
         except AnoncredsError as err:
             raise AnonCredsHolderError("Error processing received credential") from err
 
-        return await self._finish_store_credential(credential_definition, cred_recvd, credential_request_metadata, credential_attr_mime_types, credential_id, rev_reg_def)
+        return await self._finish_store_credential(
+            credential_definition,
+            cred_recvd,
+            credential_request_metadata,
+            credential_attr_mime_types,
+            credential_id,
+            rev_reg_def,
+        )
 
     async def get_credentials(self, start: int, count: int, wql: dict):
         """Get credentials stored in the wallet.
