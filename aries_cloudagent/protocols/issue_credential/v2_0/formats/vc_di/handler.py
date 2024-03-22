@@ -270,6 +270,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
                 "issuanceDate": "2024-01-10T04:44:29.563418Z",
             },
         }
+
         return self.get_format_data(CRED_20_OFFER, vcdi_cred_offer)
 
     async def receive_offer(
@@ -365,8 +366,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             cred_request_metadata=cred_req_result["metadata"],
         )
 
-        print("cred_req_result:", cred_req_result)
-
         vcdi_cred_request = {
             "data_model_version": "2.0",
             "binding_proof": {
@@ -382,7 +381,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
                 "didcomm_signed_attachment": {"attachment_id": "test"},
             },
         }
-        print("vcdi_cred_request:", vcdi_cred_request)
 
         async with self.profile.session() as session:
             await detail_record.save(session, reason="create v2.0 credential request")
@@ -413,7 +411,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             decode=False
         )
 
-        nonce = cred_offer["binding_method"]["anoncreds_link_secret"]["nonce"]
         cred_def_id = cred_offer["binding_method"]["anoncreds_link_secret"][
             "cred_def_id"
         ]
@@ -456,7 +453,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
             "blinded_ms_correctness_proof": cred_request["binding_proof"][
                 "anoncreds_link_secret"
             ]["blinded_ms_correctness_proof"],
-            "nonce": nonce,
+            "nonce": cred_request["binding_proof"]["anoncreds_link_secret"]["nonce"],
         }
 
         issuer = AnonCredsIssuer(self.profile)
@@ -493,7 +490,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         #     raise V20CredFormatError("Failed to issue credential") from err
 
         result = self.get_format_data(CRED_20_ISSUE, vcdi_credential)
-        print("result:", result)
 
         cred_rev_id = None
         rev_reg_def_id = None
@@ -539,8 +535,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
         """Store vcdi credential."""
         cred = cred_ex_record.cred_issue.attachment(VCDICredFormatHandler.format)
         cred = cred["credential"]
-
-        print("Received credential:", cred)
 
         rev_reg_def = None
         anoncreds_registry = self.profile.inject(AnonCredsRegistry)
