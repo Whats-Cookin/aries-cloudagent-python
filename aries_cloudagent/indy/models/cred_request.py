@@ -251,6 +251,6 @@ class VCDICredRequestSchema(BaseModelSchema):
         required=True, metadata={"description": "", "example": ""}
     )
 
-    binding_proof = fields.str(
+    binding_proof = fields.Str(
         required=True, metadata={"description": "", "example": ""}
     )

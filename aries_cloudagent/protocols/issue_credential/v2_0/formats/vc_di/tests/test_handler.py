@@ -3,14 +3,16 @@ from time import time
 import json
 import datetime
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import patch
+
+# from unittest.mock import patch
 
 from marshmallow import ValidationError
 
 from aries_cloudagent.tests import mock
 
 from .......core.in_memory import InMemoryProfile
-from aries_askar.store import Entry
+
+# from aries_askar.store import Entry
 from .......ledger.base import BaseLedger
 from .......ledger.multiple_ledger.ledger_requests_executor import (
     IndyLedgerRequestsExecutor,
@@ -93,6 +95,7 @@ from ...indy.tests.test_handler import (
     REV_REG_DEF,
     INDY_OFFER,
     INDY_CRED,
+    INDY_CRED_REQ,
 )
 
 # corresponds to the test data imported above from indy test_handler
@@ -565,7 +568,6 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
             assert attachment.data.base64
 
     async def test_issue_credential_non_revocable(self):
-<<<<<<< HEAD
         CRED_DEF_NR = deepcopy(CRED_DEF)
         CRED_DEF_NR["value"]["revocation"] = None
         attr_values = {
