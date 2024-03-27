@@ -13,6 +13,7 @@ from anoncreds import (
     CredentialOffer,
     KeyCorrectnessProof,
     Schema,
+    W3cCredential,
 )
 from aries_askar import AskarError
 from aries_cloudagent.ledger.base import BaseLedger
@@ -639,7 +640,7 @@ class AnonCredsIssuer:
 
         return credential.to_json()
 
-    async def create_credential_vc_di(
+    async def create_credential_w3c(
         self,
         credential_offer: dict,
         credential_request: dict,
@@ -647,24 +648,25 @@ class AnonCredsIssuer:
     ) -> str:
         """Create Credential."""
         anoncreds_registry = self.profile.inject(AnonCredsRegistry)
-        cred_def_id = credential_offer["binding_method"]["anoncreds_link_secret"][
-            "cred_def_id"
-        ]
-        ledger = self.profile.inject(BaseLedger)
-        multitenant_mgr = self.profile.inject_or(BaseMultitenantManager)
-        if multitenant_mgr:
-            ledger_exec_inst = IndyLedgerRequestsExecutor(self.profile)
-        else:
-            ledger_exec_inst = self.profile.inject(IndyLedgerRequestsExecutor)
-        ledger = (
-            await ledger_exec_inst.get_ledger_for_identifier(
-                cred_def_id,
-                txn_record_type=GET_CRED_DEF,
-            )
-        )[1]
+        schema_id = credential_offer["schema_id"]
+        # cred_def_id = credential_offer["binding_method"]["anoncreds_link_secret"][
+        #     "cred_def_id"
+        # ]
+        # ledger = self.profile.inject(BaseLedger)
+        # multitenant_mgr = self.profile.inject_or(BaseMultitenantManager)
+        # if multitenant_mgr:
+        #     ledger_exec_inst = IndyLedgerRequestsExecutor(self.profile)
+        # else:
+        #     ledger_exec_inst = self.profile.inject(IndyLedgerRequestsExecutor)
+        # ledger = (
+        #     await ledger_exec_inst.get_ledger_for_identifier(
+        #         cred_def_id,
+        #         txn_record_type=GET_CRED_DEF,
+        #     )
+        # )[1]
 
-        async with ledger:
-            schema_id = await ledger.credential_definition_id2schema_id(cred_def_id)
+        # async with ledger:
+        #     schema_id = await ledger.credential_definition_id2schema_id(cred_def_id)
         schema_result = await anoncreds_registry.get_schema(self.profile, schema_id)
         cred_def_id = credential_offer["cred_def_id"]
         schema_attributes = schema_result.schema_value.attr_names
@@ -702,7 +704,7 @@ class AnonCredsIssuer:
         try:
             credential = await asyncio.get_event_loop().run_in_executor(
                 None,
-                lambda: Credential.create(
+                lambda: W3cCredential.create(
                     cred_def.raw_value,
                     cred_def_private.raw_value,
                     credential_offer,

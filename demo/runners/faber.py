@@ -142,6 +142,32 @@ class FaberAgent(AriesAgent):
                     "trace": exchange_tracing,
                 }
                 return offer_request
+            
+            elif cred_type == CRED_FORMAT_VC_DI:
+                self.cred_attrs[cred_def_id] = {
+                    "name": "Alice Smith",
+                    "date": "2018-05-28",
+                    "degree": "Maths",
+                    "birthdate_dateint": birth_date.strftime(birth_date_format),
+                    "timestamp": str(int(time.time())),
+                }
+
+                cred_preview = {
+                    "@type": CRED_PREVIEW_TYPE,
+                    "attributes": [
+                        {"name": n, "value": v}
+                        for (n, v) in self.cred_attrs[cred_def_id].items()
+                    ],
+                }
+                offer_request = {
+                    "connection_id": self.connection_id,
+                    "comment": f"Offer on cred def id {cred_def_id}",
+                    "auto_remove": False,
+                    "credential_preview": cred_preview,
+                    "filter": {"vc_di": {"cred_def_id": cred_def_id}},
+                    "trace": exchange_tracing,
+                }
+                return offer_request
 
             elif cred_type == CRED_FORMAT_JSON_LD:
                 offer_request = {
@@ -176,33 +202,33 @@ class FaberAgent(AriesAgent):
                 }
                 return offer_request
 
-            elif cred_type == CRED_FORMAT_VC_DI:
-                self.cred_attrs[cred_def_id] = {
-                    "name": "Alice Smith",
-                    "date": "2018-05-28",
-                    "degree": "Maths",
-                    "birthdate_dateint": birth_date.strftime(birth_date_format),
-                    "timestamp": str(int(time.time())),
-                }
+            # elif cred_type == CRED_FORMAT_VC_DI:
+            #     self.cred_attrs[cred_def_id] = {
+            #         "name": "Alice Smith",
+            #         "date": "2018-05-28",
+            #         "degree": "Maths",
+            #         "birthdate_dateint": birth_date.strftime(birth_date_format),
+            #         "timestamp": str(int(time.time())),
+            #     }
 
-                cred_preview = {
-                    "@type": CRED_PREVIEW_TYPE,
-                    "attributes": [
-                        {"name": n, "value": v}
-                        for (n, v) in self.cred_attrs[cred_def_id].items()
-                    ],
-                }
-                offer_request = {
-                    "connection_id": self.connection_id,
-                    "comment": f"Offer on cred def id {cred_def_id}",
-                    "auto_remove": False,
-                    "credential_preview": cred_preview,
-                    "filter": {"vc_di": {"cred_def_id": cred_def_id}},
-                    "trace": exchange_tracing,
-                }
-                return offer_request
-            else:
-                raise Exception(f"Error invalid credential type: {self.cred_type}")
+            #     cred_preview = {
+            #         "@type": CRED_PREVIEW_TYPE,
+            #         "attributes": [
+            #             {"name": n, "value": v}
+            #             for (n, v) in self.cred_attrs[cred_def_id].items()
+            #         ],
+            #     }
+            #     offer_request = {
+            #         "connection_id": self.connection_id,
+            #         "comment": f"Offer on cred def id {cred_def_id}",
+            #         "auto_remove": False,
+            #         "credential_preview": cred_preview,
+            #         "filter": {"vc_di": {"cred_def_id": cred_def_id}},
+            #         "trace": exchange_tracing,
+            #     }
+            #     return offer_request
+            # else:
+            #     raise Exception(f"Error invalid credential type: {self.cred_type}")
 
         else:
             raise Exception(f"Error invalid AIP level: {self.aip}")
