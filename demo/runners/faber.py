@@ -1,10 +1,10 @@
 import asyncio
+import datetime
 import json
 import logging
 import os
 import sys
 import time
-import datetime
 
 from aiohttp import ClientError
 from qrcode import QRCode
@@ -12,9 +12,9 @@ from qrcode import QRCode
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from runners.agent_container import (  # noqa:E402
+    AriesAgent,
     arg_parser,
     create_agent_with_args,
-    AriesAgent,
 )
 from runners.support.agent import (  # noqa:E402
     CRED_FORMAT_INDY,
@@ -28,7 +28,6 @@ from runners.support.utils import (  # noqa:E402
     prompt,
     prompt_loop,
 )
-
 
 CRED_PREVIEW_TYPE = "https://didcomm.org/issue-credential/2.0/credential-preview"
 SELF_ATTESTED = os.getenv("SELF_ATTESTED")
@@ -202,6 +201,31 @@ class FaberAgent(AriesAgent):
                 }
                 return offer_request
 
+            elif cred_type == CRED_FORMAT_VC_DI:
+                self.cred_attrs[cred_def_id] = {
+                    "name": "Alice Smith",
+                    "date": "2018-05-28",
+                    "degree": "Maths",
+                    "birthdate_dateint": birth_date.strftime(birth_date_format),
+                    "timestamp": str(int(time.time())),
+                }
+
+                cred_preview = {
+                    "@type": CRED_PREVIEW_TYPE,
+                    "attributes": [
+                        {"name": n, "value": v}
+                        for (n, v) in self.cred_attrs[cred_def_id].items()
+                    ],
+                }
+                offer_request = {
+                    "connection_id": self.connection_id,
+                    "comment": f"Offer on cred def id {cred_def_id}",
+                    "auto_remove": False,
+                    "credential_preview": cred_preview,
+                    "filter": {"vc_di": {"cred_def_id": cred_def_id}},
+                    "trace": exchange_tracing,
+                }
+                return offer_request
             else:
                 raise Exception(f"Error invalid credential type: {self.cred_type}")
 
@@ -861,9 +885,20 @@ async def main(args):
                 publish = (
                     await prompt("Publish now? [Y/N]: ", default="N")
                 ).strip() in "yY"
+
+                # Anoncreds has different endpoints for revocation
+                is_anoncreds = False
+                if faber_agent.agent.__dict__["wallet_type"] == "askar-anoncreds":
+                    is_anoncreds = True
+
                 try:
+                    endpoint = (
+                        "/anoncreds/revocation/revoke"
+                        if is_anoncreds
+                        else "/revocation/revoke"
+                    )
                     await faber_agent.agent.admin_POST(
-                        "/revocation/revoke",
+                        endpoint,
                         {
                             "rev_reg_id": rev_reg_id,
                             "cred_rev_id": cred_rev_id,
@@ -879,58 +914,80 @@ async def main(args):
 
             elif option == "6" and faber_agent.revocation:
                 try:
-                    resp = await faber_agent.agent.admin_POST(
-                        "/revocation/publish-revocations", {}
+                    endpoint = (
+                        "/anoncreds/revocation/publish-revocations"
+                        if is_anoncreds
+                        else "/revocation/publish-revocations"
                     )
+                    resp = await faber_agent.agent.admin_POST(endpoint, {})
                     faber_agent.agent.log(
                         "Published revocations for {} revocation registr{} {}".format(
                             len(resp["rrid2crid"]),
                             "y" if len(resp["rrid2crid"]) == 1 else "ies",
-                            json.dumps([k for k in resp["rrid2crid"]], indent=4),
+                            json.dumps(list(resp["rrid2crid"]), indent=4),
                         )
                     )
                 except ClientError:
                     pass
             elif option == "7" and faber_agent.revocation:
                 try:
+                    endpoint = (
+                        f"/anoncreds/revocation/active-registry/{faber_agent.cred_def_id}/rotate"
+                        if is_anoncreds
+                        else f"/revocation/active-registry/{faber_agent.cred_def_id}/rotate"
+                    )
                     resp = await faber_agent.agent.admin_POST(
-                        f"/revocation/active-registry/{faber_agent.cred_def_id}/rotate",
+                        endpoint,
                         {},
                     )
                     faber_agent.agent.log(
                         "Rotated registries for {}. Decommissioned Registries: {}".format(
                             faber_agent.cred_def_id,
-                            json.dumps([r for r in resp["rev_reg_ids"]], indent=4),
+                            json.dumps(list(resp["rev_reg_ids"]), indent=4),
                         )
                     )
                 except ClientError:
                     pass
             elif option == "8" and faber_agent.revocation:
-                states = [
-                    "init",
-                    "generated",
-                    "posted",
-                    "active",
-                    "full",
-                    "decommissioned",
-                ]
+                if is_anoncreds:
+                    endpoint = "/anoncreds/revocation/registries"
+                    states = [
+                        "finished",
+                        "failed",
+                        "action",
+                        "wait",
+                        "decommissioned",
+                        "full",
+                    ]
+                    default_state = "finished"
+                else:
+                    endpoint = "/revocation/registries/created"
+                    states = [
+                        "init",
+                        "generated",
+                        "posted",
+                        "active",
+                        "full",
+                        "decommissioned",
+                    ]
+                    default_state = "active"
                 state = (
                     await prompt(
                         f"Filter by state: {states}: ",
-                        default="active",
+                        default=default_state,
                     )
                 ).strip()
                 if state not in states:
                     state = "active"
                 try:
                     resp = await faber_agent.agent.admin_GET(
-                        "/revocation/registries/created",
+                        endpoint,
                         params={"state": state},
                     )
                     faber_agent.agent.log(
                         "Registries (state = '{}'): {}".format(
                             state,
-                            json.dumps([r for r in resp["rev_reg_ids"]], indent=4),
+                            json.dumps(list(resp["rev_reg_ids"]), indent=4),
                         )
                     )
                 except ClientError:

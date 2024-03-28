@@ -301,7 +301,6 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
 
     @mock.patch.object(InMemoryProfileSession, "handle")
     async def test_create_offer(self, mock_session_handle):
-
         # mock_entry = mock.MagicMock(spec=Entry)
         # mock_entry.name = 'entry name'
         # mock_entry.raw_value = CRED_DEF
@@ -404,7 +403,6 @@ class TestV20VCDICredFormatHandler(IsolatedAsyncioTestCase):
         await self.handler.receive_offer(cred_ex_record, cred_offer_message)
 
     async def test_create_request(self):
-
         holder_did = "did"
 
         cred_offer = V20CredOffer(
