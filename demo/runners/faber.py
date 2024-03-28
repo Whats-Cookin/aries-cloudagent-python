@@ -368,6 +368,9 @@ class FaberAgent(AriesAgent):
             elif cred_type == CRED_FORMAT_VC_DI:
                 
                 proof_request_web_request= {
+                    "comment": "test proof request for json-ld",
+                    "presentation_request": {
+                        "dif": {
                     "options": {
         "challenge": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
         "domain": "4jt78h47fh47",
@@ -407,7 +410,7 @@ class FaberAgent(AriesAgent):
             }
         ],
     },
-                }
+                },},}
                 if not connectionless:
                     proof_request_web_request["connection_id"] = self.connection_id
                 return proof_request_web_request
