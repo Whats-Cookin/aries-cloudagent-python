@@ -16,6 +16,12 @@ from anoncreds import (
     W3cCredential,
 )
 from aries_askar import AskarError
+from aries_cloudagent.ledger.base import BaseLedger
+from aries_cloudagent.ledger.multiple_ledger.ledger_requests_executor import (
+    GET_CRED_DEF,
+    IndyLedgerRequestsExecutor,
+)
+from aries_cloudagent.multitenant.base import BaseMultitenantManager
 
 from ..askar.profile_anon import (
     AskarAnoncredsProfile,
@@ -28,6 +34,7 @@ from .base import (
     AnonCredsSchemaAlreadyExists,
     BaseAnonCredsError,
 )
+from .error_messages import ANONCREDS_PROFILE_REQUIRED_MSG
 from .events import CredDefFinishedEvent
 from .models.anoncreds_cred_def import CredDef, CredDefResult
 from .models.anoncreds_schema import AnonCredsSchema, SchemaResult, SchemaState
@@ -98,7 +105,7 @@ class AnonCredsIssuer:
     def profile(self) -> AskarAnoncredsProfile:
         """Accessor for the profile instance."""
         if not isinstance(self._profile, AskarAnoncredsProfile):
-            raise ValueError("AnonCreds interface requires AskarAnoncreds")
+            raise ValueError(ANONCREDS_PROFILE_REQUIRED_MSG)
 
         return self._profile
 
@@ -312,6 +319,15 @@ class AnonCredsIssuer:
         max_cred_num = options.get("max_cred_num", DEFAULT_MAX_CRED_NUM)
         if not isinstance(max_cred_num, int):
             raise ValueError("max_cred_num must be an integer")
+
+        # Don't allow revocable cred def to be created without tails server base url
+        if (
+            not self.profile.settings.get("tails_server_base_url")
+            and support_revocation
+        ):
+            raise AnonCredsIssuerError(
+                "tails_server_base_url not configured. Can't create revocable credential definition."  # noqa: E501
+            )
 
         anoncreds_registry = self.profile.inject(AnonCredsRegistry)
         schema_result = await anoncreds_registry.get_schema(self.profile, schema_id)
