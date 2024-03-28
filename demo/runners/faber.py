@@ -342,64 +342,47 @@ class FaberAgent(AriesAgent):
                 return proof_request_web_request
 
             elif cred_type == CRED_FORMAT_VC_DI:
-                req_attrs = [
-                    {
-                        "name": "name",
-                        "restrictions": [{"schema_name": "degree schema"}],
-                    },
-                    {
-                        "name": "date",
-                        "restrictions": [{"schema_name": "degree schema"}],
-                    },
-                ]
-                if revocation:
-                    req_attrs.append(
+                
+                proof_request_web_request= {
+                    "options": {
+        "challenge": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
+        "domain": "4jt78h47fh47",
+    },
+    "presentation_definition": {
+        "id": "32f54163-7166-48f1-93d8-ff217bdb0654",
+        "submission_requirements": [
+            {
+                "name": "Citizenship Information",
+                "rule": "pick",
+                "min": 1,
+                "from": "A",
+            }
+        ],
+        "input_descriptors": [
+            {
+                "id": "citizenship_input_1",
+                "name": "EU Driver's License",
+                "group": ["A"],
+                "schema": [
+                    {"uri": "https://www.w3.org/2018/credentials#VerifiableCredential"},
+                    {"uri": "https://w3id.org/citizenship#PermanentResidentCard"},
+                ],
+                "constraints": {
+                    "limit_disclosure": "required",
+                    "fields": [
                         {
-                            "name": "degree",
-                            "restrictions": [{"schema_name": "degree schema"}],
-                            "non_revoked": {"to": int(time.time() - 1)},
-                        },
-                    )
-                else:
-                    req_attrs.append(
-                        {
-                            "name": "degree",
-                            "restrictions": [{"schema_name": "degree schema"}],
+                            "path": ["$.credentialSubject.givenName"],
+                            "purpose": "The claim must be from one of the specified issuers",
+                            "filter": {
+                                "type": "string",
+                                "enum": ["JOHN", "CAI"],
+                            },
                         }
-                    )
-                if SELF_ATTESTED:
-                    # test self-attested claims
-                    req_attrs.append(
-                        {"name": "self_attested_thing"},
-                    )
-                req_preds = [
-                    # test zero-knowledge proofs
-                    {
-                        "name": "birthdate_dateint",
-                        "p_type": "<=",
-                        "p_value": int(birth_date.strftime(birth_date_format)),
-                        "restrictions": [{"schema_name": "degree schema"}],
-                    }
-                ]
-
-                vc_di_proof_request = {
-                    "name": "Proof of Education",
-                    "version": "1.0",
-                    "requested_attributes": {
-                        f"0_{req_attr['name']}_uuid": req_attr for req_attr in req_attrs
-                    },
-                    "requested_predicates": {
-                        f"0_{req_pred['name']}_GE_uuid": req_pred
-                        for req_pred in req_preds
-                    },
-                }
-
-                if revocation:
-                    vc_di_proof_request["non_revoked"] = {"to": int(time.time())}
-
-                proof_request_web_request = {
-                    "presentation_request": {"dif": {'presentation_definition': vc_di_proof_request}},
-                    "trace": exchange_tracing,
+                    ],
+                },
+            }
+        ],
+    },
                 }
                 if not connectionless:
                     proof_request_web_request["connection_id"] = self.connection_id
