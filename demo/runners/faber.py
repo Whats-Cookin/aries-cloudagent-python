@@ -343,7 +343,7 @@ class FaberAgent(AriesAgent):
 
             elif cred_type == CRED_FORMAT_VC_DI:
                 proof_request_web_request = {
-                    "comment": "test proof request for json-ld",
+                    "comment": "test proof request for vc_di",
                     "presentation_request": {
                         "dif": {
                             "options": {

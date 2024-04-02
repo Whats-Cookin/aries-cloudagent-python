@@ -6,6 +6,7 @@ indy compatible, attachment is a valid verifiable credential
 import json
 import logging
 from typing import Mapping, Tuple
+from datetime import datetime, timezone
 from aries_cloudagent.protocols.issue_credential.v2_0.models.detail.vc_di import (
     V20CredExRecordVCDI,
 )
@@ -229,8 +230,6 @@ class VCDICredFormatHandler(V20CredFormatHandler):
                 else:
                     cred_offer = await _create()
                     await entry.set_result(cred_offer, 3600)
-        if not cred_offer:
-            cred_offer = await _create()
 
         vcdi_cred_offer = {
             "data_model_versions_supported": ["1.1"],
@@ -256,7 +255,7 @@ class VCDICredFormatHandler(V20CredFormatHandler):
                 "type": ["VerifiableCredential"],
                 "issuer": "public_did",
                 "credentialSubject": cred_proposal_message.credential_preview.attr_dict(),
-                "issuanceDate": "2024-01-10T04:44:29.563418Z",
+                "issuanceDate": datetime.now(timezone.utc).isoformat()[:-6]+"Z",
             },
         }
 
