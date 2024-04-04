@@ -64,7 +64,7 @@ class V20CredFormat(BaseModel):
 
         VC_DI = FormatSpec(
             "didcomm/",
-            V20CredExRecordVCDI,
+            V20CredExRecordIndy,
             DeferLoad(
                 "aries_cloudagent.protocols.issue_credential.v2_0"
                 ".formats.vc_di.handler.VCDICredFormatHandler"

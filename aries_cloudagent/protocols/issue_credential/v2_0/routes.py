@@ -111,7 +111,7 @@ class V20CredExRecordDetailSchema(OpenAPISchema):
 
     indy = fields.Nested(V20CredExRecordIndySchema, required=False)
     ld_proof = fields.Nested(V20CredExRecordLDProofSchema, required=False)
-    vc_di = fields.Nested(V20CredExRecordVCDISchema, required=False)
+    vc_di = fields.Nested(V20CredExRecordSchema, required=False)
 
 
 class V20CredExRecordListResultSchema(OpenAPISchema):
