@@ -16,13 +16,15 @@ The pre-requisites for the work are:
 [RFC 0809 VC-DI]: https://github.com/hyperledger/aries-rfcs/pull/809
 [RFC 0510 DIF Presentation Exchange]: https://github.com/hyperledger/aries-rfcs/blob/main/features/0510-dif-pres-exch-attach/README.md
 
-As of 2024-01-15, these pre-requisites have been met.
+As of 2024-04-07, these pre-requisites have been met.
 
 ## Impacts on ACA-Py
 
 ### Issuer
 
-Issuer support needs to be added for using the [RFC 0809 VC-DI] attachment format when sending Issue Credential v2.0 protocol`offer` and `issue` messages and when receiving `request` messages.
+Issuer support has been added for using the [RFC 0809 VC-DI] attachment format to Issue Credential v2.0 protocol`offer` and `issue` messages and when receiving `request` messages.
+
+Issuer can decide to send credential in either legacy or W3C format.
 
 Related notes:
 
@@ -143,10 +145,10 @@ could be the parameters for `create_offer` method.
 
 Create VC_DI Credential
 
-**NOTE: There has been some changes to _encoding of attribute values_ for creating a credential, so we have to be adjust to the new changes.**
+**NOTE: There has been some changes to _encoding of attribute values_ for creating a credential, so we have to be adjust to the new changes by creating a new method to create a vc_di format credential.**
 
 ```python
-async def create_credential(
+async def create_credential_w3c(
         self,
         credential_offer: dict,
         credential_request: dict,
@@ -163,9 +165,6 @@ async def create_credential(
             credential_offer,
             credential_request,
             raw_values,
-            None,
-            None,
-            None,
             None,
         ),
     )
@@ -234,7 +233,7 @@ async def create_vc_di_presentation(
 
 #### Converting an already issued legacy anoncreds to VC_DI format(vice versa)
 
-In this case, we can use `to_w3c` method of `Credential` class to convert from legacy to w3c and `to_legacy` method of `W3CCredential` class to convert from w3c to legacy.
+In this case, we can use `to_w3c` method of `W3cCredential` class to convert from legacy to w3c and `to_legacy` method of `Credential` class to convert from w3c to legacy.
 
 We could call `to_w3c` method like this:
 
@@ -248,7 +247,11 @@ and for `to_legacy`:
 legacy_cred = W3CCredential.to_legacy()
 ```
 
-We don't need to input any parameters to it as it in turn calls `Credential.from_w3c()` method under the hood.
+and for `from_w3c()`:
+
+```python
+cred_recvd = Credential.from_w3c(cred_w3c)
+```
 
 ### Format Handler for Issue_credential V2_0 Protocol
 
@@ -262,32 +265,32 @@ class Format(Enum):
     INDY = FormatSpec(...)
     LD_PROOF = FormatSpec(...)
     VC_DI = FormatSpec(
-        “vc_di/”,
-        CredExRecordVCDI,
+        “didcomm/”,
+        V20CredExRecordIndy,
         DeferLoad(
             “aries_cloudagent.protocols.issue_credential.v2_0”
-            “.formats.vc_di.handler.AnonCredsW3CFormatHandler”
+            “.formats.vc_di.handler.VCDICredFormatHandler”
         ),
     )
 ```
 
-And create a new CredExRecordVCDI in reference to V20CredExRecordLDProof
+And create a new V20CredExRecordVCDI in reference to V20CredExRecordLDProof
 
 ```python
-# /protocols/issue_credential/v2_0/models/detail/w3c.py
+# /protocols/issue_credential/v2_0/models/detail/vc_di.py
 
-class CredExRecordW3C(BaseRecord):
-    """Credential exchange W3C detail record."""
+class V20CredExRecordVCDI(BaseRecord):
+    """Credential exchange vc_di detail record."""
 
     class Meta:
-        """CredExRecordW3C metadata."""
+        """V20CredExRecordVCDI metadata."""
 
-        schema_class = "CredExRecordW3CSchema"
+        schema_class = "V20CredExRecordVCDISchema"
 
-    RECORD_ID_NAME = "cred_ex_w3c_id"
-    RECORD_TYPE = "w3c_cred_ex_v20"
+    RECORD_ID_NAME = "cred_ex_vc_di_id"
+    RECORD_TYPE = "vc_di_cred_ex_v20"
     TAG_NAMES = {"~cred_ex_id"} if UNENCRYPTED_TAGS else {"cred_ex_id"}
-    RECORD_TOPIC = "issue_credential_v2_0_w3c"
+    RECORD_TOPIC = "issue_credential_v2_0_vc_di"
 
 ```
 
@@ -316,59 +319,31 @@ Based on the proposed credential attachment format with the new Data Integrity p
 }
 ```
 
-Assuming `VCDIDetail` and `VCDIOptions` are already in place, `VCDIDetailSchema` can be created like so:
+Assuming `VCDIIndyCredential` is already in place, request artifacts to attach to RFC 453 messages, `VCDIIndyCredentialSchema` can be created like so:
 
 ```python
-# /protocols/issue_credential/v2_0/formats/vc_di/models/cred_detail.py
+# /protocols/issue_credential/v2_0/formats/vc_di/models/cred.py
 
-class VCDIDetailSchema(BaseModelSchema):
-    """VC_DI verifiable credential detail schema."""
+class VCDIIndyCredentialSchema(BaseModelSchema):
+    """VCDI Indy credential schema."""
 
     class Meta:
-        """Accept parameter overload."""
+        """VCDI Indy credential schemametadata."""
 
-        unknown = INCLUDE
-        model_class = VCDIDetail
-
-    credential = fields.Nested(
-        CredentialSchema(),
-        required=True,
-        metadata={
-            "description": "Detail of the VC_DI Credential to be issued",
-            "example": {
-                "@id": "284d3996-ba85-45d9-964b-9fd5805517b6",
-                "@type": "https://didcomm.org/issue-credential/2.0/issue-credential",
-                "comment": "<some comment>",
-                "formats": [
-                    {
-                        "attach_id": "5b38af88-d36f-4f77-bb7a-2f04ab806eb8",
-                        "format": "didcomm/w3c-di-vc@v0.1"
-                    }
-                ],
-                "credentials~attach": [
-                    {
-                        "@id": "5b38af88-d36f-4f77-bb7a-2f04ab806eb8",
-                        "mime-type": "application/ld+json",
-                        "data": {
-                            "base64": "ewogICAgICAgICAgIkBjb250ZXogWwogICAgICAg...(clipped)...RNVmR0SXFXZhWXgySkJBIgAgfQogICAgICAgIH0="
-                        }
-                    }
-                ]
-            }
-        },
-    )
+        model_class = VCDIIndyCredential
+        unknown = EXCLUDE
 ```
 
-Then create w3c format handler with mapping like so:
+Then create vc_di format handler with mapping like so:
 
 ```python
-# /protocols/issue_credential/v2_0/formats/w3c/handler.py
+# /protocols/issue_credential/v2_0/formats/vc_di/handler.py
 
 mapping = {
-            CRED_20_PROPOSAL: VCDIDetailSchema,
-            CRED_20_OFFER: VCDIDetailSchema,
-            CRED_20_REQUEST: VCDIDetailSchema,
-            CRED_20_ISSUE: VerifiableCredentialSchema,
+            CRED_20_PROPOSAL: CredDefQueryStringSchema,
+            CRED_20_OFFER: VCDICredAbstractSchema,
+            CRED_20_REQUEST: VCDICredRequestSchema,
+            CRED_20_ISSUE: VCDIIndyCredentialSchema,
         }
 ```
 
@@ -384,22 +359,22 @@ ATTACHMENT_FORMAT = {
     CRED_20_PROPOSAL: {
         V20CredFormat.Format.INDY.api: "hlindy/cred-filter@v2.0",
         V20CredFormat.Format.LD_PROOF.api: "aries/ld-proof-vc-detail@v1.0",
-        V20CredFormat.Format.VC_DI.api: "aries/vc-di-detail@v2.0",
+        V20CredFormat.Format.VC_DI.api: "didcomm/w3c-di-vc@v0.1",
     },
     CRED_20_OFFER: {
         V20CredFormat.Format.INDY.api: "hlindy/cred-abstract@v2.0",
         V20CredFormat.Format.LD_PROOF.api: "aries/ld-proof-vc-detail@v1.0",
-        V20CredFormat.Format.VC_DI.api: "aries/vc-di-detail@v2.0",
+        V20CredFormat.Format.VC_DI.api: "didcomm/w3c-di-vc-offer@v0.1",
     },
     CRED_20_REQUEST: {
         V20CredFormat.Format.INDY.api: "hlindy/cred-req@v2.0",
         V20CredFormat.Format.LD_PROOF.api: "aries/ld-proof-vc-detail@v1.0",
-        V20CredFormat.Format.VC_DI.api: "aries/vc-di-detail@v2.0",
+        V20CredFormat.Format.VC_DI.api: "didcomm/w3c-di-vc-request@v0.1",
     },
     CRED_20_ISSUE: {
         V20CredFormat.Format.INDY.api: "hlindy/cred@v2.0",
         V20CredFormat.Format.LD_PROOF.api: "aries/ld-proof-vc@v1.0",
-        V20CredFormat.Format.VC_DI.api: "aries/vc-di@v2.0",
+        V20CredFormat.Format.VC_DI.api: "didcomm/w3c-di-vc@v0.1",
     },
 }
 ```
@@ -611,11 +586,11 @@ One of the questions we need to answer is whether the preferred approach is to m
 We will duplicate this [store_credential](https://github.com/hyperledger/aries-cloudagent-python/blob/8cfe8283ddb2a85e090ea1b8a916df2d78298ec0/aries_cloudagent/anoncreds/holder.py#L167) function and modify it:
 
 ```python
-async def store_w3c_credential(...) {
+async def store_credential_w3c(...) {
     ...
     ...
     try:
-        cred = W3CCredential.load(credential_data)
+        cred_w3c = W3cCredential.load(credential_data)
     ...
     ...
 }
