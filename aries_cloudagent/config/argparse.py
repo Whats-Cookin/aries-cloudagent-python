@@ -585,6 +585,7 @@ class GeneralGroup(ArgumentGroup):
             metavar="<storage-type>",
             env_var="ACAPY_STORAGE_TYPE",
             help=(
+                "DEPRECATED: This option is ignored. "
                 "Specifies the type of storage provider to use for the internal "
                 "storage engine. This storage interface is used to store internal "
                 "state. Supported internal storage types are 'basic' (memory) "
@@ -682,8 +683,10 @@ class GeneralGroup(ArgumentGroup):
         if args.endpoint:
             settings["default_endpoint"] = args.endpoint[0]
             settings["additional_endpoints"] = args.endpoint[1:]
-        else:
+
+        elif "no_transport" not in args:
             raise ArgsParseError("-e/--endpoint is required")
+
         if args.profile_endpoint:
             settings["profile_endpoint"] = args.profile_endpoint
 
@@ -1273,6 +1276,19 @@ class TransportGroup(ArgumentGroup):
     def add_arguments(self, parser: ArgumentParser):
         """Add transport-specific command line arguments to the parser."""
         parser.add_argument(
+            "--no-transport",
+            dest="no_transport",
+            action="store_true",
+            env_var="ACAPY_NO_TRANSPORT",
+            help=(
+                "Specifies that aca-py will run with no transport configured. "
+                "This must be set if running in no-transport mode.  Overrides any "
+                "specified transport or endpoint configurations.  "
+                "Either this parameter or the "
+                "'--endpoint' parameter MUST be specified. Default: false."
+            ),
+        )
+        parser.add_argument(
             "-it",
             "--inbound-transport",
             dest="inbound_transports",
@@ -1380,28 +1396,33 @@ class TransportGroup(ArgumentGroup):
     def get_settings(self, args: Namespace):
         """Extract transport settings."""
         settings = {}
-        if args.inbound_transports:
-            settings["transport.inbound_configs"] = args.inbound_transports
+        if args.no_transport:
+            settings["transport.disabled"] = True
         else:
-            raise ArgsParseError("-it/--inbound-transport is required")
-        if args.outbound_transports:
-            settings["transport.outbound_configs"] = args.outbound_transports
-        else:
-            raise ArgsParseError("-ot/--outbound-transport is required")
-        settings["transport.enable_undelivered_queue"] = args.enable_undelivered_queue
+            if args.inbound_transports:
+                settings["transport.inbound_configs"] = args.inbound_transports
+            else:
+                raise ArgsParseError("-it/--inbound-transport is required")
+            if args.outbound_transports:
+                settings["transport.outbound_configs"] = args.outbound_transports
+            else:
+                raise ArgsParseError("-ot/--outbound-transport is required")
+            settings["transport.enable_undelivered_queue"] = (
+                args.enable_undelivered_queue
+            )
+            if args.max_message_size:
+                settings["transport.max_message_size"] = args.max_message_size
+            if args.max_outbound_retry:
+                settings["transport.max_outbound_retry"] = args.max_outbound_retry
+            if args.ws_heartbeat_interval:
+                settings["transport.ws.heartbeat_interval"] = args.ws_heartbeat_interval
+            if args.ws_timeout_interval:
+                settings["transport.ws.timeout_interval"] = args.ws_timeout_interval
 
         if args.label:
             settings["default_label"] = args.label
         if args.image_url:
             settings["image_url"] = args.image_url
-        if args.max_message_size:
-            settings["transport.max_message_size"] = args.max_message_size
-        if args.max_outbound_retry:
-            settings["transport.max_outbound_retry"] = args.max_outbound_retry
-        if args.ws_heartbeat_interval:
-            settings["transport.ws.heartbeat_interval"] = args.ws_heartbeat_interval
-        if args.ws_timeout_interval:
-            settings["transport.ws.timeout_interval"] = args.ws_timeout_interval
 
         return settings
 
@@ -1575,10 +1596,10 @@ class WalletGroup(ArgumentGroup):
             default="basic",
             env_var="ACAPY_WALLET_TYPE",
             help=(
-                "Specifies the type of Indy wallet provider to use. "
+                "Specifies the type of wallet provider to use. "
                 "Supported internal storage types are 'basic' (memory), 'askar' "
                 "and 'askar-anoncreds'."
-                "The default (if not specified) is 'basic'. 'indy' is deprecated."
+                "The default (if not specified) is 'basic'."
             ),
         )
         parser.add_argument(
@@ -1602,10 +1623,7 @@ class WalletGroup(ArgumentGroup):
             help=(
                 "Specifies the storage configuration to use for the wallet. "
                 "This is required if you are for using 'postgres_storage' wallet "
-                'storage type. For example, \'{"url":"localhost:5432", '
-                '"wallet_scheme":"MultiWalletSingleTable"}\'. This '
-                "configuration maps to the indy sdk postgres plugin "
-                "(PostgresConfig)."
+                'storage type. For example, \'{"url":"localhost:5432"}\'.'
             ),
         )
         parser.add_argument(
@@ -1629,9 +1647,8 @@ class WalletGroup(ArgumentGroup):
                 "This is required if you are for using 'postgres_storage' wallet "
                 'For example, \'{"account":"postgres","password": '
                 '"mysecretpassword","admin_account":"postgres", '
-                '"admin_password":"mysecretpassword"}\'. This configuration maps '
-                "to the indy sdk postgres plugin (PostgresCredentials). NOTE: "
-                "admin_user must have the CREATEDB role or else initialization "
+                '"admin_password":"mysecretpassword"}\'.'
+                "NOTE: admin_user must have the CREATEDB role or else initialization "
                 "will fail."
             ),
         )
@@ -1685,7 +1702,7 @@ class WalletGroup(ArgumentGroup):
         if args.recreate_wallet:
             settings["wallet.recreate"] = True
         # check required settings for persistent wallets
-        if settings["wallet.type"] in ["indy", "askar", "askar-anoncreds"]:
+        if settings["wallet.type"] in ["askar", "askar-anoncreds"]:
             # requires name, key
             if not args.wallet_name or not args.wallet_key:
                 raise ArgsParseError(
@@ -1700,7 +1717,7 @@ class WalletGroup(ArgumentGroup):
                 if not args.wallet_storage_config or not args.wallet_storage_creds:
                     raise ArgsParseError(
                         "Parameters --wallet-storage-config and --wallet-storage-creds "
-                        "must be provided for indy postgres wallets"
+                        "must be provided for postgres wallets"
                     )
         return settings
 

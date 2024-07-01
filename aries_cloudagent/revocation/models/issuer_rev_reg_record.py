@@ -1,9 +1,8 @@
 """Issuer revocation registry storage handling."""
 
-import json
 import importlib
+import json
 import logging
-import uuid
 from functools import total_ordering
 from os.path import join
 from pathlib import Path
@@ -12,12 +11,10 @@ from typing import Any, Mapping, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
 from marshmallow import fields, validate
+from uuid_utils import uuid4
 
 from ...core.profile import Profile, ProfileSession
-from ...indy.credx.issuer import (
-    CATEGORY_CRED_DEF,
-    CATEGORY_REV_REG_DEF_PRIVATE,
-)
+from ...indy.credx.issuer import CATEGORY_CRED_DEF, CATEGORY_REV_REG_DEF_PRIVATE
 from ...indy.issuer import IndyIssuer, IndyIssuerError
 from ...indy.models.revocation import (
     IndyRevRegDef,
@@ -190,7 +187,7 @@ class IssuerRevRegRecord(BaseRecord):
     async def generate_registry(self, profile: Profile):
         """Create the revocation registry definition and tails file."""
         if not self.tag:
-            self.tag = self._id or str(uuid.uuid4())
+            self.tag = self._id or str(uuid4())
 
         if self.state != IssuerRevRegRecord.STATE_INIT:
             raise RevocationError(
@@ -527,7 +524,12 @@ class IssuerRevRegRecord(BaseRecord):
 
     @classmethod
     async def query_by_cred_def_id(
-        cls, session: ProfileSession, cred_def_id: str, state: str = None
+        cls,
+        session: ProfileSession,
+        cred_def_id: str,
+        state: str = None,
+        negative_state: str = None,
+        limit=None,
     ) -> Sequence["IssuerRevRegRecord"]:
         """Retrieve issuer revocation registry records by credential definition ID.
 
@@ -542,7 +544,13 @@ class IssuerRevRegRecord(BaseRecord):
                 (("cred_def_id", cred_def_id), ("state", state)),
             )
         )
-        return await cls.query(session, tag_filter)
+        return await cls.query(
+            session,
+            tag_filter,
+            post_filter_positive={"state": state} if state else None,
+            post_filter_negative={"state": negative_state} if negative_state else None,
+            limit=limit,
+        )
 
     @classmethod
     async def query_by_pending(

@@ -99,7 +99,7 @@ class TestDidExchangeManager(IsolatedAsyncioTestCase, TestConfig):
                 "debug.auto_accept_invites": True,
                 "debug.auto_accept_requests": True,
                 "multitenant.enabled": True,
-                "wallet.id": True,
+                "wallet.id": "test-wallet-id",
             },
             bind={
                 BaseResponder: self.responder,
@@ -2014,6 +2014,9 @@ class TestDidExchangeManager(IsolatedAsyncioTestCase, TestConfig):
         mock_response.did = TestConfig.test_target_did
         mock_response.did_doc_attach = None
         mock_response.did_rotate_attach.data.verify = mock.AsyncMock(return_value=True)
+        mock_response.did_rotate_attach.data.signed = (
+            TestConfig.test_target_did.encode()
+        )
 
         receipt = MessageReceipt(
             recipient_did=TestConfig.test_did,

@@ -7,8 +7,8 @@ import os
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from timeit import default_timer
 from secrets import token_hex
+from timeit import default_timer
 
 import asyncpg
 import yaml
@@ -464,7 +464,7 @@ class DemoAgent:
             },
             "options": {
                 "support_revocation": support_revocation,
-                "max_cred_num": max_cred_num,
+                "revocation_registry_size": max_cred_num,
             },
         }
         credential_definition_response = await self.admin_POST(
@@ -785,7 +785,7 @@ class DemoAgent:
             "wallet_name": target_wallet_name,
             "wallet_type": self.wallet_type,
             "label": target_wallet_name,
-            "wallet_webhook_urls": self.webhook_url,
+            "wallet_webhook_urls": [self.webhook_url],
             "wallet_dispatch_type": "both",
         }
         self.wallet_name = target_wallet_name

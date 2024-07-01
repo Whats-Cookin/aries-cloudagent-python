@@ -37,6 +37,7 @@ class ClaimFormat(BaseModel):
         ldp: Mapping = None,
         ldp_vc: Mapping = None,
         ldp_vp: Mapping = None,
+        di_vc: Mapping = None,
     ):
         """Initialize format."""
         self.jwt = jwt
@@ -45,6 +46,7 @@ class ClaimFormat(BaseModel):
         self.ldp = ldp
         self.ldp_vc = ldp_vc
         self.ldp_vp = ldp_vp
+        self.di_vc = di_vc
 
 
 class ClaimFormatSchema(BaseModelSchema):
@@ -62,6 +64,7 @@ class ClaimFormatSchema(BaseModelSchema):
     ldp = fields.Dict(required=False)
     ldp_vc = fields.Dict(required=False)
     ldp_vp = fields.Dict(required=False)
+    di_vc = fields.Dict(required=False)
 
 
 class SubmissionRequirements(BaseModel):
@@ -217,7 +220,7 @@ class SchemasInputDescriptorFilterSchema(BaseModelSchema):
 
     @pre_load
     def extract_info(self, data, **kwargs):
-        """deserialize."""
+        """Deserialize."""
         new_data = {}
         if isinstance(data, dict):
             if "uri_groups" in data:
@@ -824,12 +827,10 @@ class PresentationSubmissionSchema(BaseModelSchema):
 
     id = fields.Str(
         required=False,
-        validate=UUID4_VALIDATE,
         metadata={"description": "ID", "example": UUID4_EXAMPLE},
     )
     definition_id = fields.Str(
         required=False,
-        validate=UUID4_VALIDATE,
         metadata={"description": "DefinitionID", "example": UUID4_EXAMPLE},
     )
     descriptor_maps = fields.List(
